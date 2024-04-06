@@ -1,0 +1,162 @@
+<head>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<h1>Baldig Resing Batteriedingens</h1>
+
+<div id="Batteriecontainer">
+</div>
+
+<div id="detail_container_backdrop">
+    <div id="detailcontainer">
+        <div id="headline"
+            style="display: flex; flex-direction: row; justify-content: space-between; align-items: center;">
+            <h2 id="stack_headline" style="margin-left: 10px;"></h2>
+            <button class="square round extra" onclick="hide_detail_container()"></p>
+        </div>
+        <div id="detail_data">
+            hier so bitte nacher daten einfügen inshallah bruder
+        </div>
+    </div>
+</div>
+
+<style>
+    body {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    #close_button {
+        background-color: aqua;
+        margin: 20px;
+        padding: 20px;
+        border-radius: 5px;
+    }
+
+    #close_button:hover {
+        box-shadow: 1px 1px black;
+        border-radius: 5px;
+        border-style: solid;
+        border-width: 1px;
+    }
+
+    #Batteriecontainer {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+        width: 80%;
+        height: 80%;
+        overflow: scroll;
+    }
+
+    .Batteriebox {
+        margin: 5px;
+        background-color: aqua;
+    }
+
+    #detail_container_backdrop {
+        display: none;
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        top: 0;
+        left: 0;
+        background-color: rgba(0, 0, 0, 0.8);
+        backdrop-filter: blur(10px);
+        align-items: center;
+        justify-content: center;
+    }
+
+    #detailcontainer {
+        z-index: 999;
+        background-color: red;
+        width: 50%;
+        height: 80%;
+    }
+
+    #detail_data {
+        display: flex;
+        flex-wrap: wrap;
+        flex-direction: row;
+        justify-content: center;
+    }
+</style>
+
+<script>
+    let detailcontainer = document.getElementById("detail_container_backdrop");
+    let main_container = document.getElementById("Batteriecontainer");
+    let detail_stack_number = document.getElementById("stack_headline");
+    let detail_data = document.getElementById("detail_data");
+
+    main_container.style.backgroundColor = "black";
+
+
+    function hide_detail_container() {
+        detailcontainer.style.display = "none";
+    }
+
+
+    for (let container_counter = 0; container_counter < 12; container_counter++) {
+        let tmp_container = document.createElement("div");
+        tmp_container.classList = "Batteriebox";
+        tmp_container.id = `container_${container_counter}`;
+
+
+        tmp_container.onclick = () => { show_stack_details(container_counter) }
+        main_container.appendChild(tmp_container);
+        update_container_text(container_counter);
+    }
+
+    async function get_stack_info(stack_number) {
+        let response = await fetch(`/stack/${stack_number}`);
+        let data = await response.json();
+        return data;
+    }
+
+    async function get_stack_detailed_info(stack_number) {
+        let response = await fetch(`/stack/detailed/${stack_number}`);
+        let data = await response.json();
+        return data;
+    }
+
+    async function update_container_text(container_id) {
+        let container = document.getElementById(`container_${container_id}`)
+        container.innerHTML = "";
+        let voltage = document.createElement("p")
+        let container_data = await get_stack_info(container_id);
+        voltage.textContent = `Spannung: ${container_data.voltage_min}V - ${container_data.voltage_max}V`;
+        let temperature = document.createElement("p");
+        temperature.textContent = `Temperatur: ${container_data.temperature_min}C - ${container_data.temperature_max}C`;
+        container.appendChild(voltage);
+        container.appendChild(temperature);
+    }
+
+
+    async function show_stack_details(stack_id) {
+        detailcontainer.style.display = "flex";
+        stack_headline.textContent = `Stack ${stack_id}`;
+        detail_data.innerHTML = "";
+
+        let stack_daten = await get_stack_detailed_info(stack_id);
+        console.log(stack_daten)
+        for (let i = 0; i < 12; i++) {
+            let tmp_container = document.createElement("div");
+            tmp_container.classList = "Batteriebox";
+            let voltage = document.createElement("p")
+            voltage.textContent = `Spannung: ${stack_daten.voltages[i]}V`;
+            let temperature = document.createElement("p");
+            temperature.textContent = `Temperatur: ${stack_daten.temperatures[i]}C`;
+            tmp_container.appendChild(voltage);
+            tmp_container.appendChild(temperature);
+
+            detail_data.appendChild(tmp_container);
+        }
+
+
+    }
+    let blub = setInterval(() => {
+        for (let container_counter = 0; container_counter < 12; container_counter++) {
+            update_container_text(container_counter)
+        }
+    }, 30000)
+</script>
