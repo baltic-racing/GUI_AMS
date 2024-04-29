@@ -26,13 +26,13 @@ app = Sanic("MyHelloWorldApp")
 #detailed_stack_info_temperature = [x for x in range(144)]
 
 stack_voltages_max = [x for x in bytes(NUM_STACK)]
-#stack_temperatures_max = [1.1, 2.2, 3.3, 4.4, 5.5, 6.6, 7.7, 8.8]
+stack_temperatures_max = [x for x in bytes(NUM_STACK)]
 
 stack_voltages_min = [x for x in bytes(NUM_STACK)]
-#stack_temperatures_min = [1, 2, 3, 4, 5, 6, 7, 8]
+stack_temperatures_min = [x for x in bytes(NUM_STACK)]
 
-detailed_stack_info_voltage = [x for x in range(NUM_CELLS)]
-detailed_stack_info_temperature = [x for x in range(NUM_CELLS)]
+detailed_stack_info_voltage = [x for x in bytes(NUM_CELLS)]
+detailed_stack_info_temperature = [x for x in bytes(NUM_CELLS)]
 
 @app.get("/styles.css")
 async def style(request):
@@ -46,8 +46,8 @@ async def hello_world(request):
 
 @app.get("/stack/detailed/<stack_num:int>")
 async def stack_info_detail(request: Request, stack_num: int):
-    print(detailed_stack_info_voltage)
-    print(detailed_stack_info_temperature)
+    #print(detailed_stack_info_voltage)
+    #print(detailed_stack_info_temperature)
     offset = stack_num * 12
 
     cell_voltages = detailed_stack_info_voltage[offset : offset + 12]
@@ -89,35 +89,39 @@ async def data_task():
     #global stack_voltages_max
     global detailed_stack_info_voltage
     global detailed_stack_info_temperature
+
     # test = "lol"
     var = serial.Serial()
     #var.port = "/dev/ttyACM0"
     var.port = "COM3"
     var.open()
     while True:
-
         messwerte = await asyncio.get_event_loop().run_in_executor(None, get_data, var)
         #stack_voltages_max = messwerte
-        print("wtf:", messwerte)
+        #print("wtf:", messwerte)
         detailed_stack_info_voltage = [messwerte[x] for x in range(NUM_CELLS)]
-        print("dafuq:", detailed_stack_info_voltage)
-        detailed_stack_info_temperature = [messwerte[x + NUM_CELLS] for x in bytes(NUM_CELLS)]
+        #print("dafuq:", detailed_stack_info_voltage)
+        detailed_stack_info_temperature = [messwerte[x + NUM_CELLS] for x in range(NUM_CELLS)]
+        #print("Temp: ",detailed_stack_info_temperature)
         #stack_voltages_max =  max(detailed_stack_info_voltage[12:24])
-        for i in range(0 , 24, 12):
-            max_value = max(detailed_stack_info_voltage[i:i + NUM_CELLS_STACK])
-            stack_voltages_max[i // 12] = max_value
+        for i in range(0 , NUM_CELLS, 12):
+            max_value_voltage = max(detailed_stack_info_voltage[i:i + NUM_CELLS_STACK])
+            stack_voltages_max[i // 12] = max_value_voltage
 
-            min_value = min(detailed_stack_info_voltage[i:i + NUM_CELLS_STACK - 1])
-            stack_voltages_min[i // 12] = min_value
-           # stack_voltages_max.append(max_value)
+            min_value_voltage = min(detailed_stack_info_voltage[i:i + NUM_CELLS_STACK - 1])
+            stack_voltages_min[i // 12] = min_value_voltage
 
-        print("max :", stack_voltages_max)
-        print("min :", stack_voltages_min)
+            max_value_temperature = max(detailed_stack_info_temperature[i:i + NUM_CELLS_STACK])
+            stack_temperatures_max[i // 12] = max_value_temperature
+
+            min_value_temperature = min(detailed_stack_info_temperature[i:i + NUM_CELLS_STACK - 1])
+            stack_temperatures_min[i // 12] = min_value_temperature
 
 
+        
 
-
-
+        #print("max :", stack_voltages_max)
+        #print("min :", stack_voltages_min)
 
 
 app.add_task(data_task)
