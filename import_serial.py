@@ -6,13 +6,18 @@ var = serial.Serial()
 var.port = "COM3"
 var.open()
 
-size = 18
+
+NUM_STACK = 2
+NUM_CELLS_STACK = 12
+NUM_CELLS = NUM_STACK * NUM_CELLS_STACK
+usb_data_size = NUM_CELLS * 2 + 1
+
 
 while(1):
     #gelesene_bytes = var.read_until(b"\0")
     gelesene_bytes = var.read_until(b"\xff")
     print(bytes(gelesene_bytes))
-    if len(gelesene_bytes) != 13:
+    if len(gelesene_bytes) != usb_data_size:
         print("Katastrophe")
         continue
 
