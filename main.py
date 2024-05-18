@@ -1,7 +1,7 @@
 import serial
 import asyncio
 
-NUM_STACK = 2
+NUM_STACK = 12
 
 
 
@@ -111,10 +111,10 @@ async def data_task():
         #stack_voltages_max =  max(detailed_stack_info_voltage[12:24])
         for i in range(0 , NUM_CELLS, 12):
             max_value_voltage = max(detailed_stack_info_voltage[i:i + NUM_CELLS_STACK])
-            stack_voltages_max[i // 12] = max_value_voltage
+            stack_voltages_max[i // 12] = max_value_voltage/10
 
             min_value_voltage = min(detailed_stack_info_voltage[i:i + NUM_CELLS_STACK - 1])
-            stack_voltages_min[i // 12] = min_value_voltage
+            stack_voltages_min[i // 12] = min_value_voltage/10
 
             max_value_temperature = max(detailed_stack_info_temperature[i:i + NUM_CELLS_STACK])
             stack_temperatures_max[i // 12] = max_value_temperature
@@ -122,10 +122,12 @@ async def data_task():
             min_value_temperature = min(detailed_stack_info_temperature[i:i + NUM_CELLS_STACK - 1])
             stack_temperatures_min[i // 12] = min_value_temperature
 
-            sum_voltage = sum(detailed_stack_info_voltage[i:i + NUM_CELLS_STACK])
+            sum_stack_voltage = sum(detailed_stack_info_voltage[i:i + NUM_CELLS_STACK])
+            sum_voltage[i // 12] = sum_stack_voltage/10
 
         #print("max :", stack_voltages_max)
         #print("min :", stack_voltages_min)
+        #print("test: ", sum_voltage)
 
 
 app.add_task(data_task)
