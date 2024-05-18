@@ -1,7 +1,8 @@
 <head>
     <link rel="stylesheet" href="/styles.css">
 </head>
-<h1>Baldig Resing Batteriedingens</h1>
+<h1>BRT Accumulator</h1>
+<h5>geschrieben von Ole Erwin Siegfried Hannemann & Maximus Schrang</h5>
 
 <div id="Batteriecontainer">
 </div>
@@ -24,6 +25,7 @@
         display: flex;
         flex-direction: column;
         align-items: center;
+        background-color: rgb(85, 82, 116);
     }
 
     #close_button {
@@ -51,7 +53,7 @@
 
     .Batteriebox {
         margin: 5px;
-        background-color: aqua;
+        background-color: rgb(70, 59, 231);
     }
 
     #detail_container_backdrop {
@@ -127,8 +129,11 @@
         voltage.textContent = `Spannung: ${container_data.voltage_min}V - ${container_data.voltage_max}V`;
         let temperature = document.createElement("p");
         temperature.textContent = `Temperatur: ${container_data.temperature_min}C - ${container_data.temperature_max}C`;
+        let stack_voltage = document.createElement("p");
+        stack_voltage.textContent = `Sum Voltage: ${container_data.sum_voltage}V`;
         container.appendChild(voltage);
         container.appendChild(temperature);
+        container.appendChild(stack_voltage);
     }
 
 

@@ -34,6 +34,8 @@ stack_temperatures_min = [x for x in bytes(NUM_STACK)]
 detailed_stack_info_voltage = [x for x in bytes(NUM_CELLS)]
 detailed_stack_info_temperature = [x for x in bytes(NUM_CELLS)]
 
+sum_voltage = [x for x in bytes(NUM_STACK)]
+
 @app.get("/styles.css")
 async def style(request):
     return html(Path("./beer.min.css").read_text())
@@ -66,6 +68,7 @@ async def stack_info(request: Request, stack_num: int):
                 "temperature_max": stack_temperatures_max[stack_num],
                 "voltage_min": stack_voltages_min[stack_num],
                 "temperature_min": stack_temperatures_min[stack_num],
+                "sum_voltage": sum_voltage[stack_num],
             }
         )
     except:
@@ -75,6 +78,7 @@ async def stack_info(request: Request, stack_num: int):
                 "temperature_max": "unbekannt",
                 "voltage_min": "unbekannt",
                 "temperature_min": "unbekannt",
+                "sum_voltage": "unbekannt",
             }
         )
 
@@ -89,6 +93,7 @@ async def data_task():
     #global stack_voltages_max
     global detailed_stack_info_voltage
     global detailed_stack_info_temperature
+    global sum_voltage
 
     # test = "lol"
     var = serial.Serial()
@@ -117,8 +122,7 @@ async def data_task():
             min_value_temperature = min(detailed_stack_info_temperature[i:i + NUM_CELLS_STACK - 1])
             stack_temperatures_min[i // 12] = min_value_temperature
 
-
-        
+            sum_voltage = sum(detailed_stack_info_voltage[i:i + NUM_CELLS_STACK])
 
         #print("max :", stack_voltages_max)
         #print("min :", stack_voltages_min)
