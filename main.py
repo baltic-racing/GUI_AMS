@@ -8,7 +8,7 @@ from typing import Optional
 app = Sanic("MyHelloWorldApp")
 
 #globale Defines
-NUM_STACK = 12
+NUM_STACK = 1
 NUM_CELLS_STACK = 12
 NUM_CELLS = NUM_STACK * NUM_CELLS_STACK
 usb_data_size = NUM_CELLS * 2 + 1
@@ -46,7 +46,7 @@ async def init_connection(request:Request):
         if json_data.get("port", None) is None:
             return json({"error":"kein Port angegeben"},400)
         serial_connection = serial.Serial(**json_data)
-        serial_connection.open()
+        #serial_connection.open()
         connected_port = json_data["port"]
     except serial.SerialException as err:
         serial_connection = None
@@ -135,11 +135,13 @@ def get_data(serial_interface):
     gelesene_bytes = serial_interface.read_until(b"\xff")
     # messwerte = [x for x in bytes(gelesene_bytes) if x != 0]
     messwerte = [x for x in bytes(gelesene_bytes)]
+    #print(gelesene_bytes)
     return messwerte
 
 
 async def data_task():
-    # global stack_voltages_max
+    global stack_voltages_max
+    global stack_voltages_min
     global detailed_stack_info_voltage
     global detailed_stack_info_temperature
     global sum_voltage
@@ -148,43 +150,62 @@ async def data_task():
 
     while True:
         if connected:
-            messwerte = await asyncio.get_event_loop().run_in_executor(
+            messwerte_future = asyncio.get_event_loop().run_in_executor(
                 None, get_data, serial_connection
             )
-            # stack_voltages_max = messwerte
-            # print("wtf:", messwerte)
-            detailed_stack_info_voltage = [messwerte[x] for x in range(NUM_CELLS)]
-            # print("dafuq:", detailed_stack_info_voltage)
-            detailed_stack_info_temperature = [
-                messwerte[x + NUM_CELLS] for x in range(NUM_CELLS)
-            ]
-            # print("Temp: ",detailed_stack_info_temperature)
-            # stack_voltages_max =  max(detailed_stack_info_voltage[12:24])
-            for i in range(0, NUM_CELLS, 12):
-                max_value_voltage = max(
-                    detailed_stack_info_voltage[i : i + NUM_CELLS_STACK]
-                )
-                stack_voltages_max[i // 12] = max_value_voltage / 10
+            try:
+                messwerte = await asyncio.wait_for(messwerte_future, 5)
+            except asyncio.TimeoutError:
+                connected = False
+                serial_connection = None
+                continue
 
-                min_value_voltage = min(
-                    detailed_stack_info_voltage[i : i + NUM_CELLS_STACK - 1]
-                )
-                stack_voltages_min[i // 12] = min_value_voltage / 10
+            try:
+                # stack_voltages_max = messwerte
+                #print("wtf:", messwerte)
+                detailed_stack_info_voltage = [messwerte[x] for x in range(NUM_CELLS)]
+                # print("dafuq:", detailed_stack_info_voltage)
+                detailed_stack_info_temperature = [
+                    messwerte[x + NUM_CELLS] for x in range(NUM_CELLS)
+                ]
+                # print("Temp: ",detailed_stack_info_temperature)
+                # stack_voltages_max =  max(detailed_stack_info_voltage[12:24])
+                for i in range(0, NUM_CELLS, 12):
+                    max_value_voltage = max(
+                        detailed_stack_info_voltage[i : i + NUM_CELLS_STACK]
+                    )
+                    stack_voltages_max[i // 12] = max_value_voltage / 10
 
-                max_value_temperature = max(
-                    detailed_stack_info_temperature[i : i + NUM_CELLS_STACK]
-                )
-                stack_temperatures_max[i // 12] = max_value_temperature
+                    min_value_voltage = min(
+                        detailed_stack_info_voltage[i : i + NUM_CELLS_STACK - 1]
+                    )
+                    stack_voltages_min[i // 12] = min_value_voltage / 10
 
-                min_value_temperature = min(
-                    detailed_stack_info_temperature[i : i + NUM_CELLS_STACK - 1]
-                )
-                stack_temperatures_min[i // 12] = min_value_temperature
+                    max_value_temperature = max(
+                        detailed_stack_info_temperature[i : i + NUM_CELLS_STACK]
+                    )
+                    stack_temperatures_max[i // 12] = max_value_temperature
 
-                sum_stack_voltage = sum(
-                    detailed_stack_info_voltage[i : i + NUM_CELLS_STACK]
-                )
-                sum_voltage[i // 12] = sum_stack_voltage / 10
+                    min_value_temperature = min(
+                        detailed_stack_info_temperature[i : i + NUM_CELLS_STACK - 1]
+                    )
+                    stack_temperatures_min[i // 12] = min_value_temperature
+
+                    sum_stack_voltage = sum(
+                        detailed_stack_info_voltage[i : i + NUM_CELLS_STACK]
+                    )
+                    sum_voltage[i // 12] = sum_stack_voltage / 10
+            except Exception as exc:
+                print(exc)
+                connected = False
+                serial_connection = None
+                sum_voltage = [0 for i in range(NUM_STACK)]
+                detailed_stack_info_voltage = [0 for i in range(NUM_STACK*NUM_CELLS)]
+                detailed_stack_info_temperature = [0 for i in range(NUM_STACK*NUM_CELLS)]
+                stack_voltages_max = [0 for x in range(NUM_STACK)]
+                stack_voltages_min = [0 for x in range(NUM_STACK)]
+                max_value_voltage = [0 for i in range(NUM_STACK)]
+                max_value_temperature = [0 for i in range(NUM_STACK)]
         else:
             await asyncio.sleep(2)
 

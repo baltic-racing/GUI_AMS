@@ -115,7 +115,7 @@
     let connect_button = document.getElementById("connect");
     let disconnect_button = document.getElementById("disconnect");
 
-    connect_button.addEventListener("click",establish_connection)
+    connect_button.addEventListener("click", establish_connection)
 
     main_container.style.backgroundColor = "black";
 
@@ -177,6 +177,12 @@
         let data = await response.json();
         return data;
     }
+    async function disconnect(){
+        let response = await fetch("/connection", {
+            method: "delete"
+        })
+    }
+    disconnect_button.addEventListener("click",()=>{disconnect()})
 
     async function update_container_text(container_id) {
         let container = document.getElementById(`container_${container_id}`)
@@ -221,6 +227,10 @@
             update_container_text(container_counter)
         }
     }, 5000)
+
+    let connection_checker = setInterval(() => {
+        get_connection_state();
+    })
 
     get_connection_state()
 </script>
