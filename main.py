@@ -76,7 +76,7 @@ async def get_connection_info(request:Request):
     global connected
     global connected_port
 
-    return json({"connected":connected, connected_port:connected_port})
+    return json({"connected":connected, "connected_port":connected_port})
 
 
 @app.get("/styles.css")
@@ -185,7 +185,8 @@ async def data_task():
                     detailed_stack_info_voltage[i : i + NUM_CELLS_STACK]
                 )
                 sum_voltage[i // 12] = sum_stack_voltage / 10
-
+        else:
+            await asyncio.sleep(2)
 
 app.add_task(data_task)
 

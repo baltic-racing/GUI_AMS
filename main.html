@@ -3,7 +3,28 @@
 </head>
 <h1>BRT Accumulator</h1>
 <h5>geschrieben von Ole Erwin Siegfried Hannemann & Maximus Schrang</h5>
-
+<br />
+<div>
+    <div class="field border small">
+        <input type="text" value="COM3" id="serial_port">
+        <span class="helper">Serial Port</span>
+    </div>
+    <div class="field suffix border">
+        <select id="baudrate">
+            <option selected>9600</option>
+            <option>14400</option>
+            <option>19200</option>
+            <option>28800</option>
+            <option>38400</option>
+            <option>57600</option>
+            <option>115200</option>
+        </select>
+        <i>arrow_drop_down</i>
+        <span class="helper">Baudrate</span>
+    </div>
+    <button id="connect">Connect</button>
+    <button id="disconnect">Disconnect</button>
+</div>
 <div id="Batteriecontainer">
 </div>
 
@@ -89,9 +110,45 @@
     let main_container = document.getElementById("Batteriecontainer");
     let detail_stack_number = document.getElementById("stack_headline");
     let detail_data = document.getElementById("detail_data");
+    let serial_port = document.getElementById("serial_port");
+    let baud_rate = document.getElementById("baudrate");
+    let connect_button = document.getElementById("connect");
+    let disconnect_button = document.getElementById("disconnect");
+
+    connect_button.addEventListener("click",establish_connection)
 
     main_container.style.backgroundColor = "black";
 
+    async function establish_connection() {
+        let response = await fetch("/connection", {
+            method: "post",
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            },
+
+            //make sure to serialize your JSON body
+            body: JSON.stringify({ port: serial_port.value, baudrate: baud_rate.value })
+        })
+        console.log(await response.json());
+    }
+
+    async function get_connection_state() {
+        let response = await fetch(`/connection`);
+        let data = await response.json();
+
+        if (data.connected) {
+            connect_button.style.display = "none";
+            disconnect_button.style.display = "block";
+            serial_port.value = data.connected_port;
+        } else {
+            disconnect_button.style.display = "none";
+            connect_button.style.display = "block";
+
+        }
+        console.log(data)
+        return data;
+    }
 
     function hide_detail_container() {
         detailcontainer.style.display = "none";
@@ -164,4 +221,6 @@
             update_container_text(container_counter)
         }
     }, 5000)
+
+    get_connection_state()
 </script>
