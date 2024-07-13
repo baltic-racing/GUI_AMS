@@ -4,12 +4,12 @@
 <h1>BRT Accumulator</h1>
 <h5>geschrieben von Ole Erwin Siegfried Hannemann & Maximus Schrang</h5>
 <br />
-<div>
-    <div class="field border small">
+<div style="display:flex;flex-direction:row">
+    <div class="field border">
         <input type="text" value="COM3" id="serial_port">
         <span class="helper">Serial Port</span>
     </div>
-    <div class="field suffix border">
+    <div class="field border" style="margin-block-start: 0px;">
         <select id="baudrate">
             <option selected>9600</option>
             <option>14400</option>
@@ -22,18 +22,19 @@
         <i>arrow_drop_down</i>
         <span class="helper">Baudrate</span>
     </div>
+    <br/>
     <button id="connect">Connect</button>
     <button id="disconnect">Disconnect</button>
 </div>
 <div id="Batteriecontainer">
 </div>
 
-<div id="detail_container_backdrop">
+<div id="detail_container_backdrop" style="z-index:100" class="blur">
     <div id="detailcontainer">
         <div id="headline"
             style="display: flex; flex-direction: row; justify-content: space-between; align-items: center;">
             <h2 id="stack_headline" style="margin-left: 10px;"></h2>
-            <button class="square round extra" onclick="hide_detail_container()"></p>
+            <button class="square round extra" style="margin:10px" onclick="hide_detail_container()"><i>close</i>
         </div>
         <div id="detail_data">
             hier so bitte nacher daten einfügen inshallah bruder
@@ -42,11 +43,18 @@
 </div>
 
 <style>
+    p{
+        font-size: larger;
+        font-weight:bold;
+    }
+    button {
+        font-size: larger;
+    }
     body {
         display: flex;
         flex-direction: column;
         align-items: center;
-        background-color: rgb(85, 82, 116);
+        background-color: rgb(111, 111, 111);
     }
 
     #close_button {
@@ -75,6 +83,10 @@
     .Batteriebox {
         margin: 5px;
         background-color: rgb(70, 59, 231);
+        filter: drop-shadow(5px 5px 2px rgba(00,00,00,0.35));
+        padding: 10px;
+        border-radius: 10px;
+        width: 10vw;
     }
 
     #detail_container_backdrop {
@@ -92,7 +104,8 @@
 
     #detailcontainer {
         z-index: 999;
-        background-color: rgb(0, 255, 115);
+        background-color: rgb(200,200,200);
+        border-radius: 10px;
         width: 50%;
         height: 80%;
     }
@@ -117,7 +130,7 @@
 
     connect_button.addEventListener("click", establish_connection)
 
-    main_container.style.backgroundColor = "black";
+    //main_container.style.backgroundColor = "black";
 
     async function establish_connection() {
         let response = await fetch("/connection", {
@@ -187,6 +200,8 @@
     async function update_container_text(container_id) {
         let container = document.getElementById(`container_${container_id}`)
         container.innerHTML = "";
+        let stack_number = document.createElement("p")
+        stack_number.textContent=`Stack: ${container_id}`
         let voltage = document.createElement("p")
         let container_data = await get_stack_info(container_id);
         voltage.textContent = `Spannung: ${container_data.voltage_min}V - ${container_data.voltage_max}V`;
@@ -194,6 +209,7 @@
         temperature.textContent = `Temperatur: ${container_data.temperature_min}C - ${container_data.temperature_max}C`;
         let stack_voltage = document.createElement("p");
         stack_voltage.textContent = `Sum Voltage: ${container_data.sum_voltage}V`;
+        container.appendChild(stack_number);
         container.appendChild(voltage);
         container.appendChild(temperature);
         container.appendChild(stack_voltage);
@@ -210,10 +226,13 @@
         for (let i = 0; i < 12; i++) {
             let tmp_container = document.createElement("div");
             tmp_container.classList = "Batteriebox";
+            let cell_number = document.createElement("p")
+            cell_number.textContent = `Zelle: ${i}`;
             let voltage = document.createElement("p")
             voltage.textContent = `Spannung: ${stack_daten.voltages[i]}V`;
             let temperature = document.createElement("p");
             temperature.textContent = `Temperatur: ${stack_daten.temperatures[i]}C`;
+            tmp_container.appendChild(cell_number);
             tmp_container.appendChild(voltage);
             tmp_container.appendChild(temperature);
 
@@ -230,7 +249,7 @@
 
     let connection_checker = setInterval(() => {
         get_connection_state();
-    })
+    },10000)
 
     get_connection_state()
 </script>
