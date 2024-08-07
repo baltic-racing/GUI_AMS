@@ -180,6 +180,10 @@ async def data_task():
                 detailed_stack_info_temperature = [
                     messwerte[x + NUM_CELLS] for x in range(NUM_CELLS)
                 ]
+                # Standardmäßig wird big Endian als Byteorder angenommen
+                # mann kann das aber auch noch explizit angeben
+                # charging_current = int.from_bytes(messwerte[-2:], "big")/100
+                # charging_current = int.from_bytes(messwerte[-2:], "little")/100
                 charging_current = int.from_bytes(messwerte[-2:])/100
                 # print("Temp: ",detailed_stack_info_temperature)
                 # stack_voltages_max =  max(detailed_stack_info_voltage[12:24])
