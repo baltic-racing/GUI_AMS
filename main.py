@@ -180,7 +180,7 @@ async def data_task():
                 detailed_stack_info_temperature = [
                     messwerte[x + NUM_CELLS] for x in range(NUM_CELLS)
                 ]
-                charging_current = int.from_bytes(messwerte[-2:])
+                charging_current = int.from_bytes(messwerte[-2:])/100
                 # print("Temp: ",detailed_stack_info_temperature)
                 # stack_voltages_max =  max(detailed_stack_info_voltage[12:24])
                 for i in range(0, NUM_CELLS, 12):
