@@ -7,7 +7,7 @@ from typing import Optional
 
 app = Sanic("MyHelloWorldApp")
 
-#globale Defines
+# globale Defines
 NUM_STACK = 1
 NUM_CELLS_STACK = 12
 NUM_CELLS = NUM_STACK * NUM_CELLS_STACK
@@ -29,58 +29,69 @@ detailed_stack_info_temperature = [x for x in bytes(NUM_CELLS)]
 
 sum_voltage = [x for x in bytes(NUM_STACK)]
 
+charging_current = 0
+
 
 @app.post("/connection")
-async def init_connection(request:Request):
+async def init_connection(request: Request):
     global serial_connection
     global connected_port
     global connected
     if connected:
-        return json({"error": "Verbindung ist bereits aufgebaut"},400)
+        return json({"error": "Verbindung ist bereits aufgebaut"}, 400)
     try:
-        json_data:dict = request.json
-        if json_data.get("baudrate",None) is None:
+        json_data: dict = request.json
+        if json_data.get("baudrate", None) is None:
             json_data["baudrate"] = 9600
-        if json_data.get("bytesize",None) is None:
+        if json_data.get("bytesize", None) is None:
             json_data["bytesize"] = 8
         if json_data.get("port", None) is None:
-            return json({"error":"kein Port angegeben"},400)
+            return json({"error": "kein Port angegeben"}, 400)
         serial_connection = serial.Serial(**json_data)
-        #serial_connection.open()
+        # serial_connection.open()
         connected_port = json_data["port"]
     except serial.SerialException as err:
         serial_connection = None
         return json({"error": f"SerialException: {str(err)}"})
     except Exception as err:
         serial_connection = None
-        return json({"error":f"{type(err)} - {str(err)}"})
-    
+        return json({"error": f"{type(err)} - {str(err)}"})
+
     connected = True
-    return json({"msg":"Verbindung aufgebaut"})
+    return json({"msg": "Verbindung aufgebaut"})
+
 
 @app.delete("/connection")
-async def destroy_connection(request:Request):
+async def destroy_connection(request: Request):
     global connected
     global serial_connection
 
     if not connected:
-        return json({"error":"Es ist keine Verbindung aufgebaut!"})
-    
+        return json({"error": "Es ist keine Verbindung aufgebaut!"})
+
     serial_connection.close()
     serial_connection = None
     connected = False
-    return json({"msg":"Verbindung getrennt"})
+    return json({"msg": "Verbindung getrennt"})
+
 
 @app.get("/connection")
-async def get_connection_info(request:Request):
+async def get_connection_info(request: Request):
     global connected
     global connected_port
 
-    return json({"connected":connected, "connected_port":connected_port})
+    return json({"connected": connected, "connected_port": connected_port})
+
+
+@app.get("/charging_current")
+async def get_charging_current(request: Request):
+    global charging_current
+
+    return json({"charging_current": charging_current})
 
 
 @app.get("/styles.css")
-async def style(request:Request):
+async def style(request: Request):
     return html(Path("./beer.min.css").read_text())
 
 
@@ -135,7 +146,7 @@ def get_data(serial_interface):
     gelesene_bytes = serial_interface.read_until(b"\xff")
     # messwerte = [x for x in bytes(gelesene_bytes) if x != 0]
     messwerte = [x for x in bytes(gelesene_bytes)]
-    #print(gelesene_bytes)
+    # print(gelesene_bytes)
     return messwerte
 
 
@@ -147,6 +158,7 @@ async def data_task():
     global sum_voltage
     global connected
     global serial_connection
+    global charging_current
 
     while True:
         if connected:
@@ -162,12 +174,13 @@ async def data_task():
 
             try:
                 # stack_voltages_max = messwerte
-                #print("wtf:", messwerte)
+                # print("wtf:", messwerte)
                 detailed_stack_info_voltage = [messwerte[x] for x in range(NUM_CELLS)]
                 # print("dafuq:", detailed_stack_info_voltage)
                 detailed_stack_info_temperature = [
                     messwerte[x + NUM_CELLS] for x in range(NUM_CELLS)
                 ]
+                charging_current = int.from_bytes(messwerte[-2:])
                 # print("Temp: ",detailed_stack_info_temperature)
                 # stack_voltages_max =  max(detailed_stack_info_voltage[12:24])
                 for i in range(0, NUM_CELLS, 12):
@@ -195,19 +208,23 @@ async def data_task():
                         detailed_stack_info_voltage[i : i + NUM_CELLS_STACK]
                     )
                     sum_voltage[i // 12] = sum_stack_voltage / 10
+
             except Exception as exc:
                 print(exc)
                 connected = False
                 serial_connection = None
                 sum_voltage = [0 for i in range(NUM_STACK)]
-                detailed_stack_info_voltage = [0 for i in range(NUM_STACK*NUM_CELLS)]
-                detailed_stack_info_temperature = [0 for i in range(NUM_STACK*NUM_CELLS)]
+                detailed_stack_info_voltage = [0 for i in range(NUM_STACK * NUM_CELLS)]
+                detailed_stack_info_temperature = [
+                    0 for i in range(NUM_STACK * NUM_CELLS)
+                ]
                 stack_voltages_max = [0 for x in range(NUM_STACK)]
                 stack_voltages_min = [0 for x in range(NUM_STACK)]
                 max_value_voltage = [0 for i in range(NUM_STACK)]
                 max_value_temperature = [0 for i in range(NUM_STACK)]
         else:
             await asyncio.sleep(2)
+
 
 app.add_task(data_task)
 
