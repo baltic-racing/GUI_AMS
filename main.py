@@ -8,7 +8,7 @@ from typing import Optional
 app = Sanic("MyHelloWorldApp")
 
 # globale Defines
-NUM_STACK = 1
+NUM_STACK = 12
 NUM_CELLS_STACK = 12
 NUM_CELLS = NUM_STACK * NUM_CELLS_STACK
 usb_data_size = NUM_CELLS * 2 + 1
@@ -184,8 +184,9 @@ async def data_task():
                 # mann kann das aber auch noch explizit angeben
                 # charging_current = int.from_bytes(messwerte[-2:], "big")/100
                 # charging_current = int.from_bytes(messwerte[-2:], "little")/100
-                charging_current = int.from_bytes(messwerte[-2:])/100
-                # print("Temp: ",detailed_stack_info_temperature)
+                charging_current = int.from_bytes(messwerte[-3:-1])/10
+                #print(charging_current)
+                #print("Temp: ",detailed_stack_info_temperature)
                 # stack_voltages_max =  max(detailed_stack_info_voltage[12:24])
                 for i in range(0, NUM_CELLS, 12):
                     max_value_voltage = max(
