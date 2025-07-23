@@ -108,7 +108,7 @@ async def get_stack_count(request: Request):
 @app.get("/stack/detailed/<stack_num:int>")
 async def stack_info_detail(request: Request, stack_num: int):
     # print(detailed_stack_info_voltage)
-    # print(detailed_stack_info_temperature)
+    #print(detailed_stack_info_temperature)
     offset = stack_num * 12
 
     cell_voltages = detailed_stack_info_voltage[offset : offset + 12]
@@ -176,7 +176,7 @@ async def data_task():
                 # stack_voltages_max = messwerte
                 # print("wtf:", messwerte)
                 detailed_stack_info_voltage = [messwerte[x] for x in range(NUM_CELLS)]
-                # print("dafuq:", detailed_stack_info_voltage)
+                #print("dafuq:", detailed_stack_info_voltage)
                 detailed_stack_info_temperature = [
                     messwerte[x + NUM_CELLS] for x in range(NUM_CELLS)
                 ]
@@ -190,7 +190,7 @@ async def data_task():
                 # stack_voltages_max =  max(detailed_stack_info_voltage[12:24])
                 for i in range(0, NUM_CELLS, 12):
                     max_value_voltage = max(
-                        detailed_stack_info_voltage[i : i + NUM_CELLS_STACK]
+                        detailed_stack_info_voltage[i : i + NUM_CELLS_STACK- 1]
                     )
                     stack_voltages_max[i // 12] = max_value_voltage / 10
 
@@ -200,7 +200,7 @@ async def data_task():
                     stack_voltages_min[i // 12] = min_value_voltage / 10
 
                     max_value_temperature = max(
-                        detailed_stack_info_temperature[i : i + NUM_CELLS_STACK]
+                        detailed_stack_info_temperature[i : i + NUM_CELLS_STACK -1]
                     )
                     stack_temperatures_max[i // 12] = max_value_temperature
 
