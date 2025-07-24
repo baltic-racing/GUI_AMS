@@ -5,7 +5,7 @@ from sanic import Sanic, Request
 from sanic.response import json, html
 from typing import Optional
 
-app = Sanic("MyHelloWorldApp")
+app = Sanic("BRT_GUI")
 
 # globale Defines
 NUM_STACK = 12
@@ -30,6 +30,10 @@ detailed_stack_info_temperature = [x for x in bytes(NUM_CELLS)]
 sum_voltage = [x for x in bytes(NUM_STACK)]
 
 charging_current = 0
+cell_voltage_max = 0
+cell_voltage_min = 0    
+cell_temperature_max = 0
+cell_temperature_min = 0
 
 
 @app.post("/connection")
@@ -86,9 +90,27 @@ async def get_connection_info(request: Request):
 @app.get("/charging_current")
 async def get_charging_current(request: Request):
     global charging_current
-
     return json({"charging_current": charging_current})
 
+@app.get("/cell_temperature_max")
+async def get_cell_temperature_max(request: Request):
+    global cell_temperature_max
+    return json({"cell_temperature_max": cell_temperature_max})
+
+@app.get("/cell_temperature_min")
+async def get_cell_temperature_min(request: Request):   
+    global cell_temperature_min
+    return json({"cell_temperature_min": cell_temperature_min})
+
+@app.get("/cell_voltage_max")
+async def get_cell_voltage_max(request: Request):
+    global cell_voltage_max
+    return json({"cell_voltage_max": cell_voltage_max})
+
+@app.get("/cell_voltage_min")
+async def get_cell_voltage_min(request: Request):
+    global cell_voltage_min
+    return json({"cell_voltage_min": cell_voltage_min})
 
 @app.get("/styles.css")
 async def style(request: Request):
@@ -141,6 +163,13 @@ async def stack_info(request: Request, stack_num: int):
             }
         )
 
+@app.get("/Accumulator.html")
+async def Accumulator(request):
+    return html(Path("./Accumulator.html").read_text())
+
+@app.get("/Telemetrie.html")
+async def Telemetrie(request):
+    return html(Path("./Telemetrie.html").read_text())
 
 def get_data(serial_interface):
     gelesene_bytes = serial_interface.read_until(b"\xff")
@@ -151,6 +180,11 @@ def get_data(serial_interface):
 
 
 async def data_task():
+    global cell_voltage_max
+    global cell_voltage_min
+    global cell_temperature_max
+    global cell_temperature_min
+
     global stack_voltages_max
     global stack_voltages_min
     global detailed_stack_info_voltage
@@ -177,14 +211,16 @@ async def data_task():
                 # print("wtf:", messwerte)
                 detailed_stack_info_voltage = [messwerte[x] for x in range(NUM_CELLS)]
                 #print("dafuq:", detailed_stack_info_voltage)
-                detailed_stack_info_temperature = [
-                    messwerte[x + NUM_CELLS] for x in range(NUM_CELLS)
-                ]
+                detailed_stack_info_temperature = [messwerte[x + NUM_CELLS] for x in range(NUM_CELLS)]
                 # Standardmäßig wird big Endian als Byteorder angenommen
                 # mann kann das aber auch noch explizit angeben
                 # charging_current = int.from_bytes(messwerte[-2:], "big")/100
                 # charging_current = int.from_bytes(messwerte[-2:], "little")/100
+
+
                 charging_current = int.from_bytes(messwerte[-3:-1])/10
+                
+
                 #print(charging_current)
                 #print("Temp: ",detailed_stack_info_temperature)
                 # stack_voltages_max =  max(detailed_stack_info_voltage[12:24])
@@ -214,6 +250,12 @@ async def data_task():
                     )
                     sum_voltage[i // 12] = sum_stack_voltage / 10
 
+                for i in range(0, NUM_CELLS, 1):
+                    cell_voltage_max = max(detailed_stack_info_voltage[i : i + 1]) / 10
+                    cell_voltage_min = min(detailed_stack_info_voltage[i : i + 1]) / 10
+                    cell_temperature_max = max(detailed_stack_info_temperature[i : i + 1])
+                    cell_temperature_min = min(detailed_stack_info_temperature[i : i + 1])
+
             except Exception as exc:
                 print(exc)
                 connected = False
@@ -229,6 +271,15 @@ async def data_task():
                 max_value_temperature = [0 for i in range(NUM_STACK)]
         else:
             await asyncio.sleep(2)
+            charging_current += charging_current + 1
+            if charging_current > 1000:
+                charging_current = 0
+            cell_voltage_max = 1
+            cell_voltage_min = 2
+            cell_temperature_max += cell_temperature_max + 1
+            if cell_temperature_max > 100:
+                cell_temperature_max = 0
+            cell_temperature_min = 40
 
 
 app.add_task(data_task)
