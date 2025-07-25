@@ -36,22 +36,7 @@
 <br />
 <img src="BRT_logo_schrift.png" alt="Logo" style="width: 600px;; margin:20px;">
 <br />
-<p>Ladestrom: <b id="charging_current"></b>A</p>
 
-<div id="Batteriecontainer"></div>
-
-<div id="detail_container_backdrop" style="z-index:100" class="blur">
-    <div id="detailcontainer">
-        <div id="headline"
-            style="display: flex; flex-direction: row; justify-content: space-between; align-items: center;">
-            <h2 id="stack_headline" style="margin-left: 10px;"></h2>
-            <button class="square round extra" style="margin:10px" onclick="hide_detail_container()"><i>close</i>
-        </div>
-        <div id="detail_data">
-            hier so bitte nacher daten einfügen inshallah bruder
-        </div>
-    </div>
-</div>
 <div id="footer">
     <p>© 2024 BRT GUI</p>
     <p>Ole Erwin Siegfried Hannemann & Maximus R. Schrang</p>
@@ -149,11 +134,6 @@
 </style>
 
 <script>
-    let charging_current = document.getElementById("charging_current");
-    let detailcontainer = document.getElementById("detail_container_backdrop");
-    let main_container = document.getElementById("Batteriecontainer");
-    let detail_stack_number = document.getElementById("stack_headline");
-    let detail_data = document.getElementById("detail_data");
     let serial_port = document.getElementById("serial_port");
     let baud_rate = document.getElementById("baudrate");
     let connect_button = document.getElementById("connect");
@@ -161,8 +141,6 @@
 
     connect_button.addEventListener("click", establish_connection);
     disconnect_button.addEventListener("click", disconnect);
-
-    let chargingChart = null;
 
     async function establish_connection() {
         let response = await fetch("/connection", {
@@ -195,91 +173,6 @@
         return data;
     }
 
-    async function get_charging_current() {
-        let response = await fetch("/charging_current");
-        let data = await response.json();
-        charging_current.textContent = data.charging_current;
-
-        // Live-Graph aktualisieren
-        if (chargingChart) {
-            const now = new Date().toLocaleTimeString();
-            chargingChart.data.labels.push(now);
-            chargingChart.data.datasets[0].data.push(data.charging_current);
-
-            if (chargingChart.data.labels.length > 10000) {
-                chargingChart.data.labels.shift();
-                chargingChart.data.datasets[0].data.shift();
-            }
-
-            chargingChart.update();
-        }
-    }
-
-    async function get_stack_info(stack_number) {
-        let response = await fetch(`/stack/${stack_number}`);
-        return await response.json();
-    }
-
-    async function get_stack_detailed_info(stack_number) {
-        let response = await fetch(`/stack/detailed/${stack_number}`);
-        return await response.json();
-    }
-
-    function hide_detail_container() {
-        detailcontainer.style.display = "none";
-    }
-
-    function create_stack_boxes() {
-        for (let i = 0; i < 12; i++) {
-            let box = document.createElement("div");
-            box.classList = "Batteriebox";
-            box.id = `container_${i}`;
-            box.onclick = () => { show_stack_details(i) };
-
-            box.innerHTML = `
-                <p class="stack_number">Stack: ${i}</p>
-                <p class="voltage">Spannung: --</p>
-                <p class="temperature">Temperatur: --</p>
-                <p class="stack_voltage">Sum Voltage: --</p>
-            `;
-
-            main_container.appendChild(box);
-        }
-    }
-
-    async function update_container_text(container_id) {
-        let container = document.getElementById(`container_${container_id}`);
-        let data = await get_stack_info(container_id);
-
-        container.querySelector(".voltage").textContent =
-            `Spannung: ${data.voltage_min}V - ${data.voltage_max}V`;
-        container.querySelector(".temperature").textContent =
-            `Temperatur: ${data.temperature_min}C - ${data.temperature_max}C`;
-        container.querySelector(".stack_voltage").textContent =
-            `Sum Voltage: ${data.sum_voltage}V`;
-    }
-
-    async function show_stack_details(stack_id) {
-        detailcontainer.style.display = "flex";
-        detail_stack_number.textContent = `Stack ${stack_id}`;
-        detail_data.innerHTML = "";
-
-        let data = await get_stack_detailed_info(stack_id);
-
-        for (let i = 0; i < 12; i++) {
-            let tmp = document.createElement("div");
-            tmp.classList = "Batteriebox";
-            tmp.innerHTML = `
-                <p>Zelle: ${i}</p>
-                <p>Spannung: ${data.voltages[i]}V</p>
-                <p>Temperatur: ${data.temperatures[i]}C</p>
-            `;
-            detail_data.appendChild(tmp);
-        }
-    }
-
-    // Initialisierung
-    create_stack_boxes();
 
     setInterval(() => {
         get_connection_state();

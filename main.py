@@ -205,12 +205,16 @@ async def data_task():
             )
             try:
                 messwerte = await asyncio.wait_for(messwerte_future, 5)
+                #print(f"Empfangene Bytes: {len(messwerte)} - {messwerte}")  # Debug-Ausgabe
+
             except asyncio.TimeoutError:
                 connected = False
                 serial_connection = None
                 continue
 
             try:
+                if len(messwerte) < NUM_CELLS * 2:
+                    raise ValueError(f"Zu wenig Daten empfangen: {len(messwerte)} statt {NUM_CELLS * 2}")
                 # stack_voltages_max = messwerte
                 # print("wtf:", messwerte)
                 detailed_stack_info_voltage = [messwerte[x] for x in range(NUM_CELLS)]
@@ -253,20 +257,27 @@ async def data_task():
                         detailed_stack_info_voltage[i : i + NUM_CELLS_STACK]
                     )
                     sum_voltage[i // 12] = sum_stack_voltage / 10
+        
+                valid_voltages = [v for i, v in enumerate(detailed_stack_info_voltage) if (i + 1) % 12 != 0]
+                valid_temperatures = [t for i, t in enumerate(detailed_stack_info_temperature) if (i + 1) % 12 != 0]
+                cell_voltage_max = max(valid_voltages) / 10
+                cell_voltage_min = min(valid_voltages) / 10
+                #cell_voltage_max = max(detailed_stack_info_voltage) / 10
+                #cell_voltage_min = min(detailed_stack_info_voltage) / 10
+                cell_temperature_max = max(valid_temperatures)
+                cell_temperature_min = min(valid_temperatures)
 
-                cell_voltage_max = max(detailed_stack_info_voltage) / 10
-                cell_voltage_min = min(detailed_stack_info_voltage) / 10
-                cell_temperature_max = max(detailed_stack_info_temperature)
-                cell_temperature_min = min(detailed_stack_info_temperature)
+                #print(detailed_stack_info_voltage)
+                #print(detailed_stack_info_temperature)
 
             except Exception as exc:
                 print(exc)
                 connected = False
                 serial_connection = None
                 sum_voltage = [0 for i in range(NUM_STACK)]
-                detailed_stack_info_voltage = [0 for i in range(NUM_STACK * NUM_CELLS)]
+                detailed_stack_info_voltage = [0 for i in range(NUM_CELLS)]
                 detailed_stack_info_temperature = [
-                    0 for i in range(NUM_STACK * NUM_CELLS)
+                    0 for i in range(NUM_CELLS)
                 ]
                 stack_voltages_max = [0 for x in range(NUM_STACK)]
                 stack_voltages_min = [0 for x in range(NUM_STACK)]
@@ -274,15 +285,11 @@ async def data_task():
                 max_value_temperature = [0 for i in range(NUM_STACK)]
         else:
             await asyncio.sleep(2)
-            charging_current += charging_current + 1
-            if charging_current > 100:
-                charging_current = 0
-            cell_voltage_max = 1
-            cell_voltage_min = 2
-            cell_temperature_max += cell_temperature_max + 1
-            if cell_temperature_max > 100:
-                cell_temperature_max = 0
-            cell_temperature_min = 40
+            charging_current = 35  # Beispielwert, wenn keine Verbindung besteht
+            cell_voltage_max = 6
+            cell_voltage_min = 5
+            cell_temperature_max = 70
+            cell_temperature_min = 65
 
 
 app.add_task(data_task)
