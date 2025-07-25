@@ -254,11 +254,10 @@ async def data_task():
                     )
                     sum_voltage[i // 12] = sum_stack_voltage / 10
 
-                for i in range(0, NUM_CELLS, 1):
-                    cell_voltage_max = max(detailed_stack_info_voltage[i : i + 1]) / 10
-                    cell_voltage_min = min(detailed_stack_info_voltage[i : i + 1]) / 10
-                    cell_temperature_max = max(detailed_stack_info_temperature[i : i + 1])
-                    cell_temperature_min = min(detailed_stack_info_temperature[i : i + 1])
+                cell_voltage_max = max(detailed_stack_info_voltage) / 10
+                cell_voltage_min = min(detailed_stack_info_voltage) / 10
+                cell_temperature_max = max(detailed_stack_info_temperature)
+                cell_temperature_min = min(detailed_stack_info_temperature)
 
             except Exception as exc:
                 print(exc)
