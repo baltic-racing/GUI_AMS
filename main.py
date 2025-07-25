@@ -7,6 +7,10 @@ from typing import Optional
 
 app = Sanic("BRT_GUI")
 
+# Statische Dateien aus dem aktuellen Ordner ausliefern:
+app.static("/", "./") # / URL unter der die Dateien erreichbar sind ./ # Ordner in dem die Dateien liegen
+
+
 # globale Defines
 NUM_STACK = 12
 NUM_CELLS_STACK = 12
@@ -272,7 +276,7 @@ async def data_task():
         else:
             await asyncio.sleep(2)
             charging_current += charging_current + 1
-            if charging_current > 1000:
+            if charging_current > 100:
                 charging_current = 0
             cell_voltage_max = 1
             cell_voltage_min = 2

@@ -4,8 +4,7 @@
     <link rel="stylesheet" href="/styles.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
-<h1>BRT Accumulator</h1>
-<h5>geschrieben von Ole Erwin Siegfried Hannemann & Maximus Schrang</h5>
+<h1>BRT GUI</h1>
 <br />
 <div style="display:flex;flex-direction:row">
     <div class="field border">
@@ -34,7 +33,9 @@
     <button onclick="window.location.href='Accumulator.html'">Accumulator</button>
     <button onclick="window.location.href='Telemetrie.html'">Telemetrie</button>
 </div>
-
+<br />
+<img src="BRT_logo_schrift.png" alt="Logo" style="width: 600px;; margin:20px;">
+<br />
 <p>Ladestrom: <b id="charging_current"></b>A</p>
 
 <div id="Batteriecontainer"></div>
@@ -52,7 +53,9 @@
     </div>
 </div>
 <div id="footer">
-    <p>© 2024 BRT Accumulator</p>
+    <p>© 2024 BRT GUI</p>
+    <p>Ole Erwin Siegfried Hannemann & Maximus R. Schrang</p>
+    <p>Version 1.0.0</p>
 </div>
 </html>
 
@@ -64,6 +67,17 @@
 
     button {
         font-size: larger;
+        background-color: rgb(0, 87, 162); /* Beispiel: Blau */
+        color: white;              /* Textfarbe */
+        border: none;
+        border-radius: 10px;
+        padding: 10px 20px;
+        margin: 5px;
+        cursor: pointer;
+    }
+
+    button:hover {
+        background-color: #217dbb; /* dunkleres Blau beim Hover */
     }
 
     body {

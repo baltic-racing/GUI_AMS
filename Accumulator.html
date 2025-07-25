@@ -219,9 +219,9 @@
         let data = await response.json();
         charging_current.textContent = data.charging_current;
 
+        const now = new Date().toLocaleTimeString();
         // Live-Graph aktualisieren
         if (window.chargingChart) {
-            const now = new Date().toLocaleTimeString();
             window.chargingChart.data.labels.push(now);
             window.chargingChart.data.datasets[0].data.push(data.charging_current);
 
@@ -345,7 +345,10 @@
                 animation: false,
                 scales: {
                     x: {
-                        title: {display: true,text: 'Zeit'}
+                        title: {display: true,text: 'Zeit'},
+                        ticks: {
+                            maxTicksLimit: 10 // Begrenze die Anzahl der X-Achsen-Ticks
+                        }
                     },
                     y: {
                         beginAtZero: true,
@@ -399,7 +402,10 @@
                 animation: false,
                 scales: {
                     x: {
-                        title: { display: true, text: 'Zeit' }
+                        title: { display: true, text: 'Zeit' },
+                        ticks: {
+                            maxTicksLimit: 10 // Begrenze die Anzahl der X-Achsen-Ticks
+                        }
                     },
                     y: {
                         position: 'left',
