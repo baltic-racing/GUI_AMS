@@ -226,7 +226,7 @@ async def data_task():
                 # charging_current = int.from_bytes(messwerte[-2:], "little")/100
 
 
-                charging_current = int.from_bytes(messwerte[-3:-1])/10
+                charging_current = int.from_bytes(messwerte[-3:-1], byteorder='big')/10
                 
 
                 #print(charging_current)
