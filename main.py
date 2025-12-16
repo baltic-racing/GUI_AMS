@@ -226,11 +226,7 @@ async def data_task():
                 # charging_current = int.from_bytes(messwerte[-2:], "little")/100
 
 
-<<<<<<< Updated upstream
                 charging_current = int.from_bytes(messwerte[-3:-1], byteorder='big')/10
-=======
-                charging_current = int.from_bytes(messwerte[-4:-2])/10
->>>>>>> Stashed changes
                 
 
                 #print(charging_current)
