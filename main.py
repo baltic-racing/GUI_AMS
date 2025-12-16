@@ -15,7 +15,7 @@ app.static("/", "./") # / URL unter der die Dateien erreichbar sind ./ # Ordner 
 NUM_STACK = 12
 NUM_CELLS_STACK = 12
 NUM_CELLS = NUM_STACK * NUM_CELLS_STACK
-usb_data_size = NUM_CELLS * 2 + 1
+usb_data_size = NUM_CELLS * 3 + 1
 
 # globale Status Variablen
 connected = False
@@ -176,7 +176,7 @@ async def Telemetrie(request):
     return html(Path("./Telemetrie.html").read_text())
 
 def get_data(serial_interface):
-    gelesene_bytes = serial_interface.read_until(b"\xff")
+    gelesene_bytes = serial_interface.read_until(b"\xff\xff")
     # messwerte = [x for x in bytes(gelesene_bytes) if x != 0]
     messwerte = [x for x in bytes(gelesene_bytes)]
     # print(gelesene_bytes)
@@ -213,20 +213,24 @@ async def data_task():
                 continue
 
             try:
-                if len(messwerte) < NUM_CELLS * 2:
-                    raise ValueError(f"Zu wenig Daten empfangen: {len(messwerte)} statt {NUM_CELLS * 2}")
+                if len(messwerte) < NUM_CELLS * 3:
+                    raise ValueError(f"Zu wenig Daten empfangen: {len(messwerte)} statt {NUM_CELLS * 3}")
                 # stack_voltages_max = messwerte
                 # print("wtf:", messwerte)
-                detailed_stack_info_voltage = [messwerte[x] for x in range(NUM_CELLS)]
+                detailed_stack_info_voltage = [(int.from_bytes(messwerte[2*x:2*x+2])/1000) for x in range(NUM_CELLS)]
                 #print("dafuq:", detailed_stack_info_voltage)
-                detailed_stack_info_temperature = [messwerte[x + NUM_CELLS] for x in range(NUM_CELLS)]
+                detailed_stack_info_temperature = [messwerte[x + 2*NUM_CELLS] for x in range(NUM_CELLS)]
                 # Standardmäßig wird big Endian als Byteorder angenommen
                 # mann kann das aber auch noch explizit angeben
                 # charging_current = int.from_bytes(messwerte[-2:], "big")/100
                 # charging_current = int.from_bytes(messwerte[-2:], "little")/100
 
 
+<<<<<<< Updated upstream
                 charging_current = int.from_bytes(messwerte[-3:-1], byteorder='big')/10
+=======
+                charging_current = int.from_bytes(messwerte[-4:-2])/10
+>>>>>>> Stashed changes
                 
 
                 #print(charging_current)
@@ -236,12 +240,12 @@ async def data_task():
                     max_value_voltage = max(
                         detailed_stack_info_voltage[i : i + NUM_CELLS_STACK- 1]
                     )
-                    stack_voltages_max[i // 12] = max_value_voltage / 10
+                    stack_voltages_max[i // 12] = max_value_voltage 
 
                     min_value_voltage = min(
                         detailed_stack_info_voltage[i : i + NUM_CELLS_STACK - 1]
                     )
-                    stack_voltages_min[i // 12] = min_value_voltage / 10
+                    stack_voltages_min[i // 12] = min_value_voltage 
 
                     max_value_temperature = max(
                         detailed_stack_info_temperature[i : i + NUM_CELLS_STACK -1]
@@ -256,12 +260,12 @@ async def data_task():
                     sum_stack_voltage = sum(
                         detailed_stack_info_voltage[i : i + NUM_CELLS_STACK]
                     )
-                    sum_voltage[i // 12] = sum_stack_voltage / 10
+                    sum_voltage[i // 12] = sum_stack_voltage
         
                 valid_voltages = [v for i, v in enumerate(detailed_stack_info_voltage) if (i + 1) % 12 != 0]
                 valid_temperatures = [t for i, t in enumerate(detailed_stack_info_temperature) if (i + 1) % 12 != 0]
-                cell_voltage_max = max(valid_voltages) / 10
-                cell_voltage_min = min(valid_voltages) / 10
+                cell_voltage_max = max(valid_voltages) 
+                cell_voltage_min = min(valid_voltages) 
                 #cell_voltage_max = max(detailed_stack_info_voltage) / 10
                 #cell_voltage_min = min(detailed_stack_info_voltage) / 10
                 cell_temperature_max = max(valid_temperatures)
@@ -295,4 +299,4 @@ async def data_task():
 app.add_task(data_task)
 
 if __name__ == "__main__":
-    app.run("0.0.0.0", 8080, workers=1)
+    app.run("0.0.0.0", 8081, workers=1)
