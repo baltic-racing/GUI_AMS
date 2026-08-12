@@ -1,452 +1,1072 @@
 
+
 <html>
+
 <head>
+
     <title>Accumulator</title>
+
     <link rel="stylesheet" href="/styles.css">
+
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 </head>
+
 <body>
+
     <h1>Accumulator</h1>
+
     <!-- Hier kannst du später Inhalte ergänzen -->
+
 </body>
 
+
+
 <div style="display:flex;flex-direction:row">
+
     <div class="field border">
+
         <input type="text" value="COM3" id="serial_port">
+
         <span class="helper">Serial Port</span>
+
     </div>
+
     <div class="field border" style="margin-block-start: 0px;">
+
         <select id="baudrate">
+
             <option selected>9600</option>
+
             <option>14400</option>
+
             <option>19200</option>
+
             <option>28800</option>
+
             <option>38400</option>
+
             <option>57600</option>
+
             <option>115200</option>
+
         </select>
+
         <i>arrow_drop_down</i>
+
         <span class="helper">Baudrate</span>
+
     </div>
+
     <br />
+
     <button id="connect">Connect</button>
+
     <button id="disconnect">Disconnect</button>
+
 </div>
+
+
 
 <!--
+
 <div class="field border" style="margin-block-start: 0px;">
+
     <select id="serial_port">
+
         <option selected>COM3</option>
+
         <option>COM4</option>
+
         <option>COM5</option>
+
         <option>COM6</option>
+
     </select>
+
     <i>arrow_drop_down</i>
+
     <span class="helper">Serial Port</span>
-</div>
--->
-<div style="display: flex; flex-direction: row; justify-content: space-between; width: 100%;">
-    <p>Verbunden mit: <b id="connected_port">--</b></p>
-    <button id="close_button" onclick="hide_detail_container()">Close</button>
+
 </div>
 
+-->
+
+<div style="display: flex; flex-direction: row; justify-content: space-between; width: 100%;">
+
+    <p>Verbunden mit: <b id="connected_port">--</b></p>
+
+</div>
+
+
+
 <p>Ladestrom: <b id="charging_current"></b>A</p>
+
 <canvas id="chargingGraph"></canvas>
+
 <br />
+
 <canvas id="cellGraph"></canvas>
+
 <br />
+
+
 
 <div id="Batteriecontainer"></div>
 
+
+
 <div id="detail_container_backdrop" style="z-index:100" class="blur">
+
     <div id="detailcontainer">
+
         <div id="headline"
+
             style="display: flex; flex-direction: row; justify-content: space-between; align-items: center;">
+
             <h2 id="stack_headline" style="margin-left: 10px;"></h2>
+
             <button class="square round extra" style="margin:10px" onclick="hide_detail_container()"><i>close</i>
+
         </div>
+
         <div id="detail_data">
+
             hier so bitte nacher daten einfügen inshallah bruder
+
         </div>
+
     </div>
+
 </div>
+
 <div id="footer">
+
     <p>© 2024 BRT Accumulator</p>
+
 </div>
+
+
 
 <style>
+
     p {
+
         font-size: larger;
+
         font-weight: bold;
+
     }
+
+
 
     button {
+
         font-size: larger;
+
     }
+
+
 
     body {
+
         display: flex;
+
         flex-direction: column;
+
         align-items: center;
+
         /*background-color: rgb(20, 19, 22);*/
+
         background-color: rgb(200, 200, 200)
+
     }
+
+
 
     #chargingGraph {
+
         width: calc(100% - 200px) !important;
+
         margin-left: 40px !important;
+
         margin-right: 40px;
+
         height: 600px !important;
 
+
+
     }
+
+
 
     #cellGraph {
+
         width: calc(100% - 200px) !important;
+
         margin-left: 40px !important;
+
         margin-right: 40px;
+
         height: 600px !important;
 
+
+
     }
+
+
 
     #close_button {
+
         background-color: aqua;
+
         margin: 20px;
+
         padding: 20px;
+
         border-radius: 5px;
+
     }
+
+
 
     #close_button:hover {
+
         box-shadow: 1px 1px black;
+
         border-radius: 5px;
+
         border-style: solid;
+
         border-width: 1px;
+
     }
+
+
 
     #Batteriecontainer {
+
         display: flex;
-        flex-direction: row;
-        flex-wrap: wrap;
-        width: 90%;
-        height: 90%;
-        overflow: scroll;
+
+        flex-direction: column;
+
+        width: 95%;
+
+        gap: 20px;
+
     }
+
+
+
+    .Stackbox {
+
+        box-sizing: border-box;
+
+        width: 100%;
+
+        padding: 15px;
+
+        background-color: rgb(180, 180, 180);
+
+        border-radius: 12px;
+
+        filter: drop-shadow(3px 3px 3px rgba(0, 0, 0, 0.25));
+
+    }
+
+
+
+    .stack_header {
+
+        display: flex;
+
+        flex-wrap: wrap;
+
+        justify-content: space-between;
+
+        align-items: center;
+
+        gap: 20px;
+
+    }
+
+
+
+    .stack_summary {
+
+        display: flex;
+
+        flex-wrap: wrap;
+
+        justify-content: flex-end;
+
+        gap: 8px 20px;
+
+    }
+
+
+
+    .stack_summary p {
+
+        margin: 0;
+
+    }
+
+
+
+    .cells_grid {
+
+        display: grid;
+
+        grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+
+        gap: 10px;
+
+    }
+
+
+
+    .cell_box {
+
+        min-width: 0;
+
+        padding: 10px;
+
+        background-color: rgb(70, 59, 231);
+
+        border-radius: 10px;
+
+        filter: drop-shadow(3px 3px 2px rgba(0, 0, 0, 0.25));
+
+    }
+
+
+
+    .cell_box p {
+
+        margin: 5px 0;
+
+    }
+
+
 
     .Batteriebox {
+
         margin: 5px;
+
         background-color: rgb(70, 59, 231);
+
         filter: drop-shadow(5px 5px 2px rgba(00, 00, 00, 0.35));
+
         padding: 10px;
+
         border-radius: 10px;
+
         width: 10vw;
+
     }
+
+
 
     #detail_container_backdrop {
+
         display: none;
+
         position: absolute;
+
         width: 100%;
+
         height: 100%;
+
         top: 0;
+
         left: 0;
+
         background-color: rgba(0, 0, 0, 0.8);
+
         backdrop-filter: blur(10px);
+
         align-items: center;
+
         justify-content: center;
+
     }
+
+
 
     #detailcontainer {
+
         z-index: 999;
+
         background-color: rgb(200, 200, 200);
+
         border-radius: 10px;
+
         width: 90%;
+
         height: 90%;
+
     }
+
+
 
     #detail_data {
+
         display: flex;
+
         flex-wrap: wrap;
+
         flex-direction: row;
+
         justify-content: center;
+
     }
+
 </style>
 
+
+
 <script>
+
     let charging_current = document.getElementById("charging_current");
+
     let detailcontainer = document.getElementById("detail_container_backdrop");
+
     let main_container = document.getElementById("Batteriecontainer");
+
     let detail_stack_number = document.getElementById("stack_headline");
+
     let detail_data = document.getElementById("detail_data");
+
     let serial_port = document.getElementById("serial_port");
+
     let baud_rate = document.getElementById("baudrate");
+
     let connect_button = document.getElementById("connect");
+
     let disconnect_button = document.getElementById("disconnect");
 
+
+
     connect_button.addEventListener("click", establish_connection);
+
     disconnect_button.addEventListener("click", disconnect);
 
+
+
     async function establish_connection() {
+
         let response = await fetch("/connection", {
+
             method: "post",
+
             headers: {
+
                 'Accept': 'application/json',
+
                 'Content-Type': 'application/json'
+
             },
+
             body: JSON.stringify({ port: serial_port.value, baudrate: baud_rate.value })
+
         });
+
         console.log(await response.json());
+
     }
+
+
 
     async function disconnect() {
+
         await fetch("/connection", { method: "delete" });
+
     }
+
+
 
     async function get_connection_state() {
+
         let response = await fetch(`/connection`);
+
         let data = await response.json();
+
+
 
         if (data.connected) {
+
             connect_button.style.display = "none";
+
             disconnect_button.style.display = "block";
+
             serial_port.value = data.connected_port;
+
         } else {
+
             disconnect_button.style.display = "none";
+
             connect_button.style.display = "block";
+
         }
+
         return data;
+
     }
+
+
 
     async function get_charging_current() {
+
         let response = await fetch("/charging_current");
+
         let data = await response.json();
+
         charging_current.textContent = data.charging_current;
 
+
+
         const now = new Date().toLocaleTimeString();
+
         // Live-Graph aktualisieren
+
         if (window.chargingChart) {
+
             window.chargingChart.data.labels.push(now);
+
             window.chargingChart.data.datasets[0].data.push(data.charging_current);
 
+
+
             if (window.chargingChart.data.labels.length > 1000) {
+
                 window.chargingChart.data.labels.shift();
+
                 window.chargingChart.data.datasets[0].data.shift();
+
             }
+
+
 
             window.chargingChart.update();
+
         }
+
     }
+
+
 
     async function update_cell_graph() {
+
         // Werte vom Backend holen
+
         const [voltage_max, voltage_min, temperature_max, temperature_min] = await Promise.all([
+
             fetch("/cell_voltage_max").then(res => res.json()).then(data => data.cell_voltage_max),
+
             fetch("/cell_voltage_min").then(res => res.json()).then(data => data.cell_voltage_min),
+
             fetch("/cell_temperature_max").then(res => res.json()).then(data => data.cell_temperature_max),
+
             fetch("/cell_temperature_min").then(res => res.json()).then(data => data.cell_temperature_min)
+
         ]);
 
+
+
         // Zeitstempel für die X-Achse
+
         const now = new Date().toLocaleTimeString();
 
+
+
         // Chart aktualisieren
+
         if (window.cellChart) {
+
             window.cellChart.data.labels.push(now);
+
             window.cellChart.data.datasets[0].data.push(voltage_max);
+
             window.cellChart.data.datasets[1].data.push(voltage_min);
+
             window.cellChart.data.datasets[2].data.push(temperature_max);
+
             window.cellChart.data.datasets[3].data.push(temperature_min);
 
+
+
             // Optional: Begrenze die Anzahl der Punkte
+
             if (window.cellChart.data.labels.length > 1000) {
+
                 window.cellChart.data.labels.shift();
+
                 window.cellChart.data.datasets.forEach(ds => ds.data.shift());
+
             }
 
+
+
             window.cellChart.update();
+
         }
+
     }
+
+
 
     async function get_stack_info(stack_number) {
+
         let response = await fetch(`/stack/${stack_number}`);
+
         return await response.json();
+
     }
+
+
 
     async function get_stack_detailed_info(stack_number) {
+
         let response = await fetch(`/stack/detailed/${stack_number}`);
+
         return await response.json();
+
     }
+
+
 
     function hide_detail_container() {
+
         detailcontainer.style.display = "none";
+
     }
+
+
 
     function create_stack_boxes() {
-        for (let i = 0; i < 12; i++) {
-            let box = document.createElement("div");
-            box.classList = "Batteriebox";
-            box.id = `container_${i}`;
-            box.onclick = () => { show_stack_details(i) };
 
-            box.innerHTML = `
-                <p class="stack_number">Stack: ${i}</p>
-                <p class="voltage">Spannung: --</p>
-                <p class="temperature">Temperatur: --</p>
-                <p class="stack_voltage">Sum Voltage: --</p>
+        for (let stack = 0; stack < 12; stack++) {
+
+            let stackBox = document.createElement("section");
+
+            stackBox.classList = "Stackbox";
+
+            stackBox.id = `container_${stack}`;
+
+            stackBox.innerHTML = `
+
+                <div class="stack_header">
+
+                    <h2>Stack ${stack}</h2>
+
+                    <div class="stack_summary">
+
+                        <p class="stack_voltage">Sum Voltage: -- V</p>
+
+                        <p class="voltage_min">Spannung min: -- V</p>
+
+                        <p class="voltage_max">Spannung max: -- V</p>
+
+                        <p class="temperature_min">Temperatur min: -- &deg;C</p>
+
+                        <p class="temperature_max">Temperatur max: -- &deg;C</p>
+
+                        <p class="ltc_temperature">LTC intern: -- &deg;C</p>
+
+                    </div>
+
+                </div>
+
+                <div class="cells_grid">
+
+                    ${Array.from({ length: 12 }, (_, cell) => `
+
+                        <div class="cell_box" id="stack_${stack}_cell_${cell}">
+
+                            <p><b>Zelle ${cell}</b></p>
+
+                            <p class="cell_voltage">Spannung: -- V</p>
+
+                            <p class="cell_temperature">Temperatur: -- &deg;C</p>
+
+                        </div>
+
+                    `).join("")}
+
+                </div>
+
             `;
 
-            main_container.appendChild(box);
+            main_container.appendChild(stackBox);
+
         }
+
     }
 
-    async function update_container_text(container_id) {
-        let container = document.getElementById(`container_${container_id}`);
-        let data = await get_stack_info(container_id);
 
-        container.querySelector(".voltage").textContent =
-            `Spannung: ${data.voltage_min}V - ${data.voltage_max}V`;
-        container.querySelector(".temperature").textContent =
-            `Temperatur: ${data.temperature_min}C - ${data.temperature_max}C`;
+
+    async function update_container_text(stack_id) {
+
+        let container = document.getElementById(`container_${stack_id}`);
+
+        let [data, stackInfo] = await Promise.all([
+
+            get_stack_detailed_info(stack_id),
+
+            get_stack_info(stack_id)
+
+        ]);
+
+        let voltages = Array.isArray(data.voltages) ? data.voltages : [];
+
+        let temperatures = Array.isArray(data.temperatures) ? data.temperatures : [];
+
+        let sumVoltage = voltages.reduce(
+
+            (sum, voltage) => sum + Number(voltage), 0
+
+        );
+
+
+
         container.querySelector(".stack_voltage").textContent =
-            `Sum Voltage: ${data.sum_voltage}V`;
+
+            `Sum Voltage: ${sumVoltage.toFixed(3)} V`;
+
+        container.querySelector(".voltage_min").textContent =
+
+            `Spannung min: ${stackInfo.voltage_min} V`;
+
+        container.querySelector(".voltage_max").textContent =
+
+            `Spannung max: ${stackInfo.voltage_max} V`;
+
+        container.querySelector(".temperature_min").textContent =
+
+            `Temperatur min: ${stackInfo.temperature_min} \u00B0C`;
+
+        container.querySelector(".temperature_max").textContent =
+
+            `Temperatur max: ${stackInfo.temperature_max} \u00B0C`;
+
+        container.querySelector(".ltc_temperature").textContent =
+
+            `LTC intern: ${stackInfo.ltc_temperature ?? "--"} \u00B0C`;
+
+
+
+        for (let cell = 0; cell < 12; cell++) {
+
+            let cellBox = document.getElementById(`stack_${stack_id}_cell_${cell}`);
+
+            cellBox.querySelector(".cell_voltage").textContent =
+
+                `Spannung: ${voltages[cell] ?? "--"} V`;
+
+            cellBox.querySelector(".cell_temperature").textContent =
+
+                `Temperatur: ${temperatures[cell] ?? "--"} \u00B0C`;
+
+        }
+
     }
+
+
 
     async function show_stack_details(stack_id) {
+
         detailcontainer.style.display = "flex";
+
         detail_stack_number.textContent = `Stack ${stack_id}`;
+
         detail_data.innerHTML = "";
+
+
 
         let data = await get_stack_detailed_info(stack_id);
 
+
+
         for (let i = 0; i < 12; i++) {
+
             let tmp = document.createElement("div");
+
             tmp.classList = "Batteriebox";
+
             tmp.innerHTML = `
+
                 <p>Zelle: ${i}</p>
+
                 <p>Spannung: ${data.voltages[i]}V</p>
+
                 <p>Temperatur: ${data.temperatures[i]}C</p>
+
             `;
+
             detail_data.appendChild(tmp);
+
         }
+
     }
+
+
 
     function setupChargingGraph() {
+
         const ctx = document.getElementById('chargingGraph').getContext('2d');
+
         window.chargingChart = new Chart(ctx, {
+
             type: 'line',
+
             data: {
+
                 labels: [],
+
                 datasets: [{
+
                     label: 'Ladestrom (A)',
+
                     borderColor: 'rgb(75, 192, 192)',
+
                     backgroundColor: 'rgba(75, 192, 192, 0.2)',
+
                     data: [],
+
                     tension: 0.3
+
                 }]
+
             },
+
             options: {
+
                 animation: false,
+
                 scales: {
+
                     x: {
+
                         title: {display: true,text: 'Zeit'},
+
                         ticks: {
+
                             maxTicksLimit: 10 // Begrenze die Anzahl der X-Achsen-Ticks
+
                         }
+
                     },
+
                     y: {
+
                         beginAtZero: true,
+
                         title: {display: true, text: 'Strom (A)'},
+
                         beginAtZero: true,
+
                         max: 35, // Maximalwert für den Ladestrom
+
                     }
+
                 }
+
             }
+
         });
+
     }
+
+
 
     function setupCellGraph() {
+
         const ctx = document.getElementById('cellGraph').getContext('2d');
+
         window.cellChart = new Chart(ctx, {
+
             type: 'line',
+
             data: {
+
                 labels: [], // Zeitpunkte
+
                 datasets: [
+
                     {
+
                         label: 'cell_voltage_max',
+
                         borderColor: 'red',
+
                         backgroundColor: 'rgba(255,0,0,0.1)',
+
                         data: [],
+
                         yAxisID: 'y',
+
                     },
+
                     {
+
                         label: 'cell_voltage_min',
+
                         borderColor: 'blue',
+
                         backgroundColor: 'rgba(0,0,255,0.1)',
+
                         data: [],
+
                         yAxisID: 'y',
+
                     },
+
                     {
+
                         label: 'cell_temperature_max',
+
                         borderColor: 'orange',
+
                         backgroundColor: 'rgba(255,165,0,0.1)',
+
                         data: [],
+
                         yAxisID: 'y1',
+
                     },
+
                     {
+
                         label: 'cell_temperature_min',
+
                         borderColor: 'green',
+
                         backgroundColor: 'rgba(0,255,0,0.1)',
+
                         data: [],
+
                         yAxisID: 'y1',
+
                     }
+
                 ]
+
             },
+
             options: {
+
                 animation: false,
+
                 scales: {
+
                     x: {
+
                         title: { display: true, text: 'Zeit' },
+
                         ticks: {
+
                             maxTicksLimit: 10 // Begrenze die Anzahl der X-Achsen-Ticks
+
                         }
+
                     },
+
                     y: {
+
                         position: 'left',
+
                         title: { display: true, text: 'Voltage (V)' },
+
                         beginAtZero: true,
+
                         max: 5, 
+
                     },
+
                     y1: {
+
                         position: 'right',
-                        title: { display: true, text: 'Temperature (°C)' },
+
+                        title: { display: true, text: 'Temperature (\u00B0C)' },
+
                         grid: { drawOnChartArea: false },
+
                         beginAtZero: true,
+
                         max: 70,
+
                     }
+
                 }
+
             }
+
         });
+
     }
+
     
+
     // Initialisierung
+
     setupChargingGraph();
+
     setupCellGraph();
-    // Erstelle die Batterieboxen
+
+    // Alle Stacks inklusive ihrer Zellen direkt anzeigen
+
     create_stack_boxes();
 
+    for (let i = 0; i < 12; i++) {
+
+        update_container_text(i);
+
+    }
+
+
+
     setInterval(() => {
+
         get_charging_current();
+
         update_cell_graph();
-        for (let i = 0; i < 12; i++) {
-            update_container_text(i);
-        }
+
     }, 100);
 
+
+
     setInterval(() => {
+
+        for (let i = 0; i < 12; i++) {
+
+            update_container_text(i);
+
+        }
+
+    }, 1000);
+
+
+
+    setInterval(() => {
+
         get_connection_state();
+
     }, 5000);
 
+
+
     get_connection_state();
+
     get_charging_current();
+
     update_cell_graph();
+
     
+
 </script>
 
+
+
 </html>
+
