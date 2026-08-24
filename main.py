@@ -17,6 +17,9 @@ NUM_CELLS_STACK = 12
 NUM_CELLS = NUM_STACK * NUM_CELLS_STACK
 usb_data_size = NUM_CELLS * 3 + 1
 
+# Temperaturkorrektur nur fuer die 11 angezeigten Zellen von Stack 4.
+STACK_4_TEMPERATURE_OFFSET = 2
+
 # globale Status Variablen
 connected = False
 connected_port = "?"
@@ -220,6 +223,13 @@ async def data_task():
                 detailed_stack_info_voltage = [(int.from_bytes(messwerte[2*x:2*x+2])/1000) for x in range(NUM_CELLS)]
                 #print("dafuq:", detailed_stack_info_voltage)
                 detailed_stack_info_temperature = [messwerte[x + 2*NUM_CELLS] for x in range(NUM_CELLS)]
+
+                stack_4_start = 4 * NUM_CELLS_STACK
+                stack_4_cells_end = stack_4_start + NUM_CELLS_STACK - 1
+                detailed_stack_info_temperature[stack_4_start:stack_4_cells_end] = [
+                    temperature + STACK_4_TEMPERATURE_OFFSET
+                    for temperature in detailed_stack_info_temperature[stack_4_start:stack_4_cells_end]
+                ]
                 # Standardmäßig wird big Endian als Byteorder angenommen
                 # mann kann das aber auch noch explizit angeben
                 # charging_current = int.from_bytes(messwerte[-2:], "big")/100
