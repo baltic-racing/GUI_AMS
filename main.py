@@ -13,6 +13,10 @@ NUM_CELLS_STACK = 12
 NUM_CELLS = NUM_STACK * NUM_CELLS_STACK
 usb_data_size = NUM_CELLS * 2 + 1
 
+# Stack 4 zeigt auf der Website die Temperaturen von Stack 3 an.
+TEMPERATURE_SOURCE_STACK = 3
+TEMPERATURE_TARGET_STACK = 4
+
 # globale Status Variablen
 connected = False
 connected_port = "?"
@@ -110,9 +114,17 @@ async def stack_info_detail(request: Request, stack_num: int):
     # print(detailed_stack_info_voltage)
     #print(detailed_stack_info_temperature)
     offset = stack_num * 12
+    temperature_stack_num = (
+        TEMPERATURE_SOURCE_STACK
+        if stack_num == TEMPERATURE_TARGET_STACK
+        else stack_num
+    )
+    temperature_offset = temperature_stack_num * NUM_CELLS_STACK
 
     cell_voltages = detailed_stack_info_voltage[offset : offset + 12]
-    cell_temperatures = detailed_stack_info_temperature[offset : offset + 12]
+    cell_temperatures = detailed_stack_info_temperature[
+        temperature_offset : temperature_offset + NUM_CELLS_STACK
+    ]
 
     return json({"voltages": cell_voltages, "temperatures": cell_temperatures})
 
@@ -121,12 +133,17 @@ async def stack_info_detail(request: Request, stack_num: int):
 async def stack_info(request: Request, stack_num: int):
     # print(stack_voltages_max)
     try:
+        temperature_stack_num = (
+            TEMPERATURE_SOURCE_STACK
+            if stack_num == TEMPERATURE_TARGET_STACK
+            else stack_num
+        )
         return json(
             {
                 "voltage_max": stack_voltages_max[stack_num],
-                "temperature_max": stack_temperatures_max[stack_num],
+                "temperature_max": stack_temperatures_max[temperature_stack_num],
                 "voltage_min": stack_voltages_min[stack_num],
-                "temperature_min": stack_temperatures_min[stack_num],
+                "temperature_min": stack_temperatures_min[temperature_stack_num],
                 "sum_voltage": sum_voltage[stack_num],
             }
         )
