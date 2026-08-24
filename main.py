@@ -146,6 +146,16 @@ async def stack_info_detail(request: Request, stack_num: int):
     cell_voltages = detailed_stack_info_voltage[offset : offset + 12]
     cell_temperatures = detailed_stack_info_temperature[offset : offset + 12]
 
+    # Stack 4 benoetigt fuer seine 11 vorhandenen NTCs eine Korrektur
+    # von +2 Grad Celsius. Die unbenutzte 12. Position bleibt unveraendert.
+    if stack_num == STACK_4_INDEX:
+        cell_temperatures = [
+            temperature + STACK_4_TEMPERATURE_OFFSET
+            if cell_index < NUM_DISPLAYED_CELLS_PER_STACK
+            else temperature
+            for cell_index, temperature in enumerate(cell_temperatures)
+        ]
+
     return json({"voltages": cell_voltages, "temperatures": cell_temperatures})
 
 
@@ -153,12 +163,17 @@ async def stack_info_detail(request: Request, stack_num: int):
 async def stack_info(request: Request, stack_num: int):
     # print(stack_voltages_max)
     try:
+        temperature_offset = (
+            STACK_4_TEMPERATURE_OFFSET if stack_num == STACK_4_INDEX else 0
+        )
         return json(
             {
                 "voltage_max": stack_voltages_max[stack_num],
-                "temperature_max": stack_temperatures_max[stack_num],
+                "temperature_max": stack_temperatures_max[stack_num]
+                + temperature_offset,
                 "voltage_min": stack_voltages_min[stack_num],
-                "temperature_min": stack_temperatures_min[stack_num],
+                "temperature_min": stack_temperatures_min[stack_num]
+                + temperature_offset,
                 "sum_voltage": sum_voltage[stack_num],
             }
         )
@@ -227,12 +242,6 @@ async def data_task():
                 #print("dafuq:", detailed_stack_info_voltage)
                 detailed_stack_info_temperature = [
                     messwerte[cell_index + 2 * NUM_CELLS]
-                    + (
-                        STACK_4_TEMPERATURE_OFFSET
-                        if cell_index // NUM_CELLS_STACK == STACK_4_INDEX
-                        and cell_index % NUM_CELLS_STACK < NUM_DISPLAYED_CELLS_PER_STACK
-                        else 0
-                    )
                     for cell_index in range(NUM_CELLS)
                 ]
                 # Standardmäßig wird big Endian als Byteorder angenommen
