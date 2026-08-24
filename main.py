@@ -5,23 +5,13 @@ from sanic import Sanic, Request
 from sanic.response import json, html
 from typing import Optional
 
-app = Sanic("BRT_GUI")
-
-# Statische Dateien aus dem aktuellen Ordner ausliefern:
-app.static("/", "./") # / URL unter der die Dateien erreichbar sind ./ # Ordner in dem die Dateien liegen
-
+app = Sanic("MyHelloWorldApp")
 
 # globale Defines
 NUM_STACK = 12
 NUM_CELLS_STACK = 12
 NUM_CELLS = NUM_STACK * NUM_CELLS_STACK
-usb_data_size = NUM_CELLS * 3 + 1
-
-# Die Website nummeriert die Stacks von 0 bis 11.
-# Temperaturkorrektur nur fuer die 11 angezeigten Zellen von Stack 4.
-STACK_4_INDEX = 4
-NUM_DISPLAYED_CELLS_PER_STACK = 11
-STACK_4_TEMPERATURE_OFFSET = 2
+usb_data_size = NUM_CELLS * 2 + 1
 
 # globale Status Variablen
 connected = False
@@ -40,10 +30,6 @@ detailed_stack_info_temperature = [x for x in bytes(NUM_CELLS)]
 sum_voltage = [x for x in bytes(NUM_STACK)]
 
 charging_current = 0
-cell_voltage_max = 0
-cell_voltage_min = 0    
-cell_temperature_max = 0
-cell_temperature_min = 0
 
 
 @app.post("/connection")
@@ -100,27 +86,9 @@ async def get_connection_info(request: Request):
 @app.get("/charging_current")
 async def get_charging_current(request: Request):
     global charging_current
+
     return json({"charging_current": charging_current})
 
-@app.get("/cell_temperature_max")
-async def get_cell_temperature_max(request: Request):
-    global cell_temperature_max
-    return json({"cell_temperature_max": cell_temperature_max})
-
-@app.get("/cell_temperature_min")
-async def get_cell_temperature_min(request: Request):   
-    global cell_temperature_min
-    return json({"cell_temperature_min": cell_temperature_min})
-
-@app.get("/cell_voltage_max")
-async def get_cell_voltage_max(request: Request):
-    global cell_voltage_max
-    return json({"cell_voltage_max": cell_voltage_max})
-
-@app.get("/cell_voltage_min")
-async def get_cell_voltage_min(request: Request):
-    global cell_voltage_min
-    return json({"cell_voltage_min": cell_voltage_min})
 
 @app.get("/styles.css")
 async def style(request: Request):
@@ -146,16 +114,6 @@ async def stack_info_detail(request: Request, stack_num: int):
     cell_voltages = detailed_stack_info_voltage[offset : offset + 12]
     cell_temperatures = detailed_stack_info_temperature[offset : offset + 12]
 
-    # Stack 4 benoetigt fuer seine 11 vorhandenen NTCs eine Korrektur
-    # von +2 Grad Celsius. Die unbenutzte 12. Position bleibt unveraendert.
-    if stack_num == STACK_4_INDEX:
-        cell_temperatures = [
-            temperature + STACK_4_TEMPERATURE_OFFSET
-            if cell_index < NUM_DISPLAYED_CELLS_PER_STACK
-            else temperature
-            for cell_index, temperature in enumerate(cell_temperatures)
-        ]
-
     return json({"voltages": cell_voltages, "temperatures": cell_temperatures})
 
 
@@ -163,17 +121,12 @@ async def stack_info_detail(request: Request, stack_num: int):
 async def stack_info(request: Request, stack_num: int):
     # print(stack_voltages_max)
     try:
-        temperature_offset = (
-            STACK_4_TEMPERATURE_OFFSET if stack_num == STACK_4_INDEX else 0
-        )
         return json(
             {
                 "voltage_max": stack_voltages_max[stack_num],
-                "temperature_max": stack_temperatures_max[stack_num]
-                + temperature_offset,
+                "temperature_max": stack_temperatures_max[stack_num],
                 "voltage_min": stack_voltages_min[stack_num],
-                "temperature_min": stack_temperatures_min[stack_num]
-                + temperature_offset,
+                "temperature_min": stack_temperatures_min[stack_num],
                 "sum_voltage": sum_voltage[stack_num],
             }
         )
@@ -188,16 +141,9 @@ async def stack_info(request: Request, stack_num: int):
             }
         )
 
-@app.get("/Accumulator.html")
-async def Accumulator(request):
-    return html(Path("./Accumulator.html").read_text())
-
-@app.get("/Telemetrie.html")
-async def Telemetrie(request):
-    return html(Path("./Telemetrie.html").read_text())
 
 def get_data(serial_interface):
-    gelesene_bytes = serial_interface.read_until(b"\xff\xff")
+    gelesene_bytes = serial_interface.read_until(b"\xff")
     # messwerte = [x for x in bytes(gelesene_bytes) if x != 0]
     messwerte = [x for x in bytes(gelesene_bytes)]
     # print(gelesene_bytes)
@@ -205,11 +151,6 @@ def get_data(serial_interface):
 
 
 async def data_task():
-    global cell_voltage_max
-    global cell_voltage_min
-    global cell_temperature_max
-    global cell_temperature_min
-
     global stack_voltages_max
     global stack_voltages_min
     global detailed_stack_info_voltage
@@ -226,33 +167,24 @@ async def data_task():
             )
             try:
                 messwerte = await asyncio.wait_for(messwerte_future, 5)
-                #print(f"Empfangene Bytes: {len(messwerte)} - {messwerte}")  # Debug-Ausgabe
-
             except asyncio.TimeoutError:
                 connected = False
                 serial_connection = None
                 continue
 
             try:
-                if len(messwerte) < NUM_CELLS * 3:
-                    raise ValueError(f"Zu wenig Daten empfangen: {len(messwerte)} statt {NUM_CELLS * 3}")
                 # stack_voltages_max = messwerte
                 # print("wtf:", messwerte)
-                detailed_stack_info_voltage = [(int.from_bytes(messwerte[2*x:2*x+2])/1000) for x in range(NUM_CELLS)]
+                detailed_stack_info_voltage = [messwerte[x] for x in range(NUM_CELLS)]
                 #print("dafuq:", detailed_stack_info_voltage)
                 detailed_stack_info_temperature = [
-                    messwerte[cell_index + 2 * NUM_CELLS]
-                    for cell_index in range(NUM_CELLS)
+                    messwerte[x + NUM_CELLS] for x in range(NUM_CELLS)
                 ]
                 # Standardmäßig wird big Endian als Byteorder angenommen
                 # mann kann das aber auch noch explizit angeben
                 # charging_current = int.from_bytes(messwerte[-2:], "big")/100
                 # charging_current = int.from_bytes(messwerte[-2:], "little")/100
-
-
-                charging_current = int.from_bytes(messwerte[-4:-2], byteorder='big')/10
-                
-
+                charging_current = int.from_bytes(messwerte[-3:-1])/10
                 #print(charging_current)
                 #print("Temp: ",detailed_stack_info_temperature)
                 # stack_voltages_max =  max(detailed_stack_info_voltage[12:24])
@@ -260,12 +192,12 @@ async def data_task():
                     max_value_voltage = max(
                         detailed_stack_info_voltage[i : i + NUM_CELLS_STACK- 1]
                     )
-                    stack_voltages_max[i // 12] = max_value_voltage 
+                    stack_voltages_max[i // 12] = max_value_voltage / 10
 
                     min_value_voltage = min(
                         detailed_stack_info_voltage[i : i + NUM_CELLS_STACK - 1]
                     )
-                    stack_voltages_min[i // 12] = min_value_voltage 
+                    stack_voltages_min[i // 12] = min_value_voltage / 10
 
                     max_value_temperature = max(
                         detailed_stack_info_temperature[i : i + NUM_CELLS_STACK -1]
@@ -280,28 +212,16 @@ async def data_task():
                     sum_stack_voltage = sum(
                         detailed_stack_info_voltage[i : i + NUM_CELLS_STACK]
                     )
-                    sum_voltage[i // 12] = sum_stack_voltage
-        
-                valid_voltages = [v for i, v in enumerate(detailed_stack_info_voltage) if (i + 1) % 12 != 0]
-                valid_temperatures = [t for i, t in enumerate(detailed_stack_info_temperature) if (i + 1) % 12 != 0]
-                cell_voltage_max = max(valid_voltages) 
-                cell_voltage_min = min(valid_voltages) 
-                #cell_voltage_max = max(detailed_stack_info_voltage) / 10
-                #cell_voltage_min = min(detailed_stack_info_voltage) / 10
-                cell_temperature_max = max(valid_temperatures)
-                cell_temperature_min = min(valid_temperatures)
-
-                #print(detailed_stack_info_voltage)
-                #print(detailed_stack_info_temperature)
+                    sum_voltage[i // 12] = sum_stack_voltage / 10
 
             except Exception as exc:
                 print(exc)
                 connected = False
                 serial_connection = None
                 sum_voltage = [0 for i in range(NUM_STACK)]
-                detailed_stack_info_voltage = [0 for i in range(NUM_CELLS)]
+                detailed_stack_info_voltage = [0 for i in range(NUM_STACK * NUM_CELLS)]
                 detailed_stack_info_temperature = [
-                    0 for i in range(NUM_CELLS)
+                    0 for i in range(NUM_STACK * NUM_CELLS)
                 ]
                 stack_voltages_max = [0 for x in range(NUM_STACK)]
                 stack_voltages_min = [0 for x in range(NUM_STACK)]
@@ -309,14 +229,9 @@ async def data_task():
                 max_value_temperature = [0 for i in range(NUM_STACK)]
         else:
             await asyncio.sleep(2)
-            charging_current = 35  # Beispielwert, wenn keine Verbindung besteht
-            cell_voltage_max = 6
-            cell_voltage_min = 5
-            cell_temperature_max = 70
-            cell_temperature_min = 65
 
 
 app.add_task(data_task)
 
 if __name__ == "__main__":
-    app.run("0.0.0.0", 8081, workers=1)
+    app.run("0.0.0.0", 8080, workers=1)
