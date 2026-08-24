@@ -17,7 +17,10 @@ NUM_CELLS_STACK = 12
 NUM_CELLS = NUM_STACK * NUM_CELLS_STACK
 usb_data_size = NUM_CELLS * 3 + 1
 
+# Die Website nummeriert die Stacks von 0 bis 11.
 # Temperaturkorrektur nur fuer die 11 angezeigten Zellen von Stack 4.
+STACK_4_INDEX = 4
+NUM_DISPLAYED_CELLS_PER_STACK = 11
 STACK_4_TEMPERATURE_OFFSET = 2
 
 # globale Status Variablen
@@ -222,13 +225,15 @@ async def data_task():
                 # print("wtf:", messwerte)
                 detailed_stack_info_voltage = [(int.from_bytes(messwerte[2*x:2*x+2])/1000) for x in range(NUM_CELLS)]
                 #print("dafuq:", detailed_stack_info_voltage)
-                detailed_stack_info_temperature = [messwerte[x + 2*NUM_CELLS] for x in range(NUM_CELLS)]
-
-                stack_4_start = 4 * NUM_CELLS_STACK
-                stack_4_cells_end = stack_4_start + NUM_CELLS_STACK - 1
-                detailed_stack_info_temperature[stack_4_start:stack_4_cells_end] = [
-                    temperature + STACK_4_TEMPERATURE_OFFSET
-                    for temperature in detailed_stack_info_temperature[stack_4_start:stack_4_cells_end]
+                detailed_stack_info_temperature = [
+                    messwerte[cell_index + 2 * NUM_CELLS]
+                    + (
+                        STACK_4_TEMPERATURE_OFFSET
+                        if cell_index // NUM_CELLS_STACK == STACK_4_INDEX
+                        and cell_index % NUM_CELLS_STACK < NUM_DISPLAYED_CELLS_PER_STACK
+                        else 0
+                    )
+                    for cell_index in range(NUM_CELLS)
                 ]
                 # Standardmäßig wird big Endian als Byteorder angenommen
                 # mann kann das aber auch noch explizit angeben
