@@ -1,0 +1,2 @@
+sanic>=24.6,<25
+pyserial==3.5
