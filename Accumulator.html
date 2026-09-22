@@ -27,7 +27,7 @@
 
     <div class="field border">
 
-        <input type="text" value="COM3" id="serial_port">
+        <input type="text" placeholder="COM-Port auswählen" id="serial_port">
 
         <span class="helper">Serial Port</span>
 
@@ -452,74 +452,7 @@
 
     connect_button.addEventListener("click", () => establish_connection());
 
-<<<<<<< Updated upstream
     disconnect_button.addEventListener("click", () => disconnect());
-=======
-    disconnect_button.addEventListener("click", disconnect);
-
-
-
-    async function establish_connection() {
-
-        let response = await fetch("/connection", {
-
-            method: "post",
-
-            headers: {
-
-                'Accept': 'application/json',
-
-                'Content-Type': 'application/json'
-
-            },
-
-            body: JSON.stringify({ port: serial_port.value, baudrate: baud_rate.value })
-
-        });
-
-        const result = await response.json(); if (result.error) alert(result.error); await get_connection_state();
-
-    }
-
-
-
-    async function disconnect() {
-
-        await fetch("/connection", { method: "delete" });
-
-    }
-
-
-
-    async function get_connection_state() {
-
-        let response = await fetch(`/connection`);
-
-        let data = await response.json();
-
-
-
-        document.getElementById("connected_port").textContent = data.connected ? `${data.connected_port} (${data.receiving ? "Messdaten" : "warte auf Messdaten"})` : "--";
-        if (data.connected) {
-
-            connect_button.style.display = "none";
-
-            disconnect_button.style.display = "block";
-
-            serial_port.value = data.connected_port;
-
-        } else {
-
-            disconnect_button.style.display = "none";
-
-            connect_button.style.display = "block";
-
-        }
-
-        return data;
-
-    }
->>>>>>> Stashed changes
 
 
 

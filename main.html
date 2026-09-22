@@ -9,7 +9,7 @@
 <br />
 <div style="display:flex;flex-direction:row">
     <div class="field border">
-        <input type="text" value="COM3" id="serial_port">
+        <input type="text" placeholder="COM-Port auswählen" id="serial_port">
         <span class="helper">Serial Port</span>
     </div>
     <div class="field border" style="margin-block-start: 0px;">
@@ -141,44 +141,8 @@
     let connect_button = document.getElementById("connect");
     let disconnect_button = document.getElementById("disconnect");
 
-<<<<<<< Updated upstream
     connect_button.addEventListener("click", () => establish_connection());
     disconnect_button.addEventListener("click", () => disconnect());
-=======
-    connect_button.addEventListener("click", establish_connection);
-    disconnect_button.addEventListener("click", disconnect);
-
-    async function establish_connection() {
-        let response = await fetch("/connection", {
-            method: "post",
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ port: serial_port.value, baudrate: baud_rate.value })
-        });
-        const result = await response.json(); if (result.error) alert(result.error); await get_connection_state();
-    }
-
-    async function disconnect() {
-        await fetch("/connection", { method: "delete" });
-    }
-
-    async function get_connection_state() {
-        let response = await fetch(`/connection`);
-        let data = await response.json();
-
-        if (data.connected) {
-            connect_button.style.display = "none";
-            disconnect_button.style.display = "block";
-            serial_port.value = data.connected_port;
-        } else {
-            disconnect_button.style.display = "none";
-            connect_button.style.display = "block";
-        }
-        return data;
-    }
->>>>>>> Stashed changes
 
 
 
@@ -186,142 +150,4 @@
 </script>
 
 
-<<<<<<< Updated upstream
 <script src="/connection.js"></script>
-=======
-    connect_button.addEventListener("click", establish_connection)
-
-    //main_container.style.backgroundColor = "black";
-
-    async function establish_connection() {
-        let response = await fetch("/connection", {
-            method: "post",
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json'
-            },
-
-            //make sure to serialize your JSON body
-            body: JSON.stringify({ port: serial_port.value, baudrate: baud_rate.value })
-        })
-        const result = await response.json(); if (result.error) alert(result.error); await get_connection_state();
-    }
-
-    async function get_connection_state() {
-        let response = await fetch(`/connection`);
-        let data = await response.json();
-
-        if (data.connected) {
-            connect_button.style.display = "none";
-            disconnect_button.style.display = "block";
-            serial_port.value = data.connected_port;
-        } else {
-            disconnect_button.style.display = "none";
-            connect_button.style.display = "block";
-
-        }
-        console.log(data)
-        return data;
-    }
-
-    function hide_detail_container() {
-        detailcontainer.style.display = "none";
-    }
-
-
-    for (let container_counter = 0; container_counter < 12; container_counter++) {
-        let tmp_container = document.createElement("div");
-        tmp_container.classList = "Batteriebox";
-        tmp_container.id = `container_${container_counter}`;
-
-
-        tmp_container.onclick = () => { show_stack_details(container_counter) }
-        main_container.appendChild(tmp_container);
-        update_container_text(container_counter);
-    }
-
-    async function get_stack_info(stack_number) {
-        let response = await fetch(`/stack/${stack_number}`);
-        let data = await response.json();
-        return data;
-    }
-
-    async function get_charging_current() {
-        let response = await fetch("/charging_current");
-        let data = await response.json();
-        charging_current.textContent = data.charging_current;
-    }
-
-    async function get_stack_detailed_info(stack_number) {
-        let response = await fetch(`/stack/detailed/${stack_number}`);
-        let data = await response.json();
-        return data;
-    }
-    async function disconnect() {
-        let response = await fetch("/connection", {
-            method: "delete"
-        })
-    }
-    disconnect_button.addEventListener("click", () => { disconnect() })
-
-    async function update_container_text(container_id) {
-        let container = document.getElementById(`container_${container_id}`)
-        container.innerHTML = "";
-        let stack_number = document.createElement("p")
-        stack_number.textContent = `Stack: ${container_id}`
-        let voltage = document.createElement("p")
-        let container_data = await get_stack_info(container_id);
-        voltage.textContent = `Spannung: ${container_data.voltage_min}V - ${container_data.voltage_max}V`;
-        let temperature = document.createElement("p");
-        temperature.textContent = `Temperatur: ${container_data.temperature_min}C - ${container_data.temperature_max}C`;
-        let stack_voltage = document.createElement("p");
-        stack_voltage.textContent = `Sum Voltage: ${container_data.sum_voltage}V`;
-        container.appendChild(stack_number);
-        container.appendChild(voltage);
-        container.appendChild(temperature);
-        container.appendChild(stack_voltage);
-    }
-
-
-    async function show_stack_details(stack_id) {
-        detailcontainer.style.display = "flex";
-        stack_headline.textContent = `Stack ${stack_id}`;
-        detail_data.innerHTML = "";
-
-        let stack_daten = await get_stack_detailed_info(stack_id);
-        console.log(stack_daten)
-        for (let i = 0; i < 12; i++) {
-            let tmp_container = document.createElement("div");
-            tmp_container.classList = "Batteriebox";
-            let cell_number = document.createElement("p")
-            cell_number.textContent = `Zelle: ${i}`;
-            let voltage = document.createElement("p")
-            voltage.textContent = `Spannung: ${stack_daten.voltages[i]}V`;
-            let temperature = document.createElement("p");
-            temperature.textContent = `Temperatur: ${stack_daten.temperatures[i]}C`;
-            tmp_container.appendChild(cell_number);
-            tmp_container.appendChild(voltage);
-            tmp_container.appendChild(temperature);
-
-            detail_data.appendChild(tmp_container);
-        }
-
-
-    }
-    let blub = setInterval(() => {
-        get_charging_current();
-        for (let container_counter = 0; container_counter < 12; container_counter++) {
-            update_container_text(container_counter)
-        }
-    }, 5000)
-
-    let connection_checker = setInterval(() => {
-        get_connection_state();
-    }, 10000)
-
-    get_connection_state();
-    get_charging_current();
-</script>
-
--->
->>>>>>> Stashed changes

@@ -40,24 +40,50 @@ async function get_connection_state() {
     }
 }
 
+const portList = document.createElement('datalist');
+portList.id = 'available_ports';
+document.body.appendChild(portList);
+serial_port.setAttribute('list', portList.id);
+const portHint = document.createElement('span');
+portHint.id = 'port_status';
+portHint.setAttribute('role', 'status');
+document.getElementById('connection_status').after(portHint);
+let portsLoading = false;
+let portsSignature = null;
+
 async function load_ports() {
+    if (portsLoading) return;
+    portsLoading = true;
     try {
-        const response = await fetch('/ports');
+        const response = await fetch('/ports', {cache: 'no-store'});
+        if (!response.ok) throw new Error('Portliste konnte nicht geladen werden');
         const data = await response.json();
-        const list = document.createElement('datalist');
-        list.id = 'available_ports';
-        for (const port of data.ports) {
-            const option = document.createElement('option');
-            option.value = port.port;
-            option.label = port.description;
-            list.appendChild(option);
+        const signature = JSON.stringify(data.ports);
+        if (signature !== portsSignature) {
+            portList.replaceChildren();
+            for (const port of data.ports) {
+                const option = document.createElement('option');
+                option.value = port.port;
+                option.label = port.description;
+                portList.appendChild(option);
+            }
+            portsSignature = signature;
         }
-        document.body.appendChild(list);
-        serial_port.setAttribute('list', list.id);
+        if (!serial_port.value.trim() && document.activeElement !== serial_port && data.ports.length === 1) {
+            serial_port.value = data.ports[0].port;
+        }
+        portHint.textContent = data.ports.length
+            ? ` Verfügbare Ports: ${data.ports.map(port => port.port).join(', ')}`
+            : ' Windows meldet keinen COM-Port. Warte auf USB-Gerät …';
     } catch (error) {
-        console.debug('Portliste nicht verfügbar', error);
+        portHint.textContent = ' Portliste nicht verfügbar – GUI-Server prüfen.';
+    } finally {
+        portsLoading = false;
     }
 }
+serial_port.addEventListener('focus', load_ports);
+window.addEventListener('focus', load_ports);
 load_ports();
 get_connection_state();
+setInterval(load_ports, 2000);
 setInterval(get_connection_state, 1000);
