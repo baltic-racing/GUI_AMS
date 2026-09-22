@@ -3,6 +3,7 @@
 <html>
 
 <head>
+    <meta charset="utf-8">
 
     <title>Accumulator</title>
 
@@ -36,7 +37,7 @@
 
         <select id="baudrate">
 
-            <option selected>9600</option>
+            <option>9600</option>
 
             <option>14400</option>
 
@@ -48,7 +49,7 @@
 
             <option>57600</option>
 
-            <option>115200</option>
+            <option selected>115200</option>
 
         </select>
 
@@ -63,6 +64,7 @@
     <button id="connect">Connect</button>
 
     <button id="disconnect">Disconnect</button>
+    <span id="connection_status" role="status">Nicht verbunden</span>
 
 </div>
 
@@ -126,13 +128,13 @@
 
             <h2 id="stack_headline" style="margin-left: 10px;"></h2>
 
-            <button class="square round extra" style="margin:10px" onclick="hide_detail_container()"><i>close</i>
+            <button class="square round extra" style="margin:10px" onclick="hide_detail_container()"><i>close</i></button>
 
         </div>
 
         <div id="detail_data">
 
-            hier so bitte nacher daten einfügen inshallah bruder
+
 
         </div>
 
@@ -448,71 +450,9 @@
 
 
 
-    connect_button.addEventListener("click", establish_connection);
+    connect_button.addEventListener("click", () => establish_connection());
 
-    disconnect_button.addEventListener("click", disconnect);
-
-
-
-    async function establish_connection() {
-
-        let response = await fetch("/connection", {
-
-            method: "post",
-
-            headers: {
-
-                'Accept': 'application/json',
-
-                'Content-Type': 'application/json'
-
-            },
-
-            body: JSON.stringify({ port: serial_port.value, baudrate: baud_rate.value })
-
-        });
-
-        console.log(await response.json());
-
-    }
-
-
-
-    async function disconnect() {
-
-        await fetch("/connection", { method: "delete" });
-
-    }
-
-
-
-    async function get_connection_state() {
-
-        let response = await fetch(`/connection`);
-
-        let data = await response.json();
-
-
-
-        if (data.connected) {
-
-            connect_button.style.display = "none";
-
-            disconnect_button.style.display = "block";
-
-            serial_port.value = data.connected_port;
-
-        } else {
-
-            disconnect_button.style.display = "none";
-
-            connect_button.style.display = "block";
-
-        }
-
-        return data;
-
-    }
+    disconnect_button.addEventListener("click", () => disconnect());
 
 
 
@@ -522,7 +462,7 @@
 
         let data = await response.json();
 
-        charging_current.textContent = data.charging_current;
+        charging_current.textContent = data.charging_current ?? "--";
 
 
 
@@ -722,33 +662,29 @@
 
         let temperatures = Array.isArray(data.temperatures) ? data.temperatures : [];
 
-        let sumVoltage = voltages.reduce(
-
-            (sum, voltage) => sum + Number(voltage), 0
-
-        );
+        let sumVoltage = stackInfo.sum_voltage;
 
 
 
         container.querySelector(".stack_voltage").textContent =
 
-            `Sum Voltage: ${sumVoltage.toFixed(3)} V`;
+            `Sum Voltage: ${sumVoltage == null ? "--" : sumVoltage.toFixed(3)} V`;
 
         container.querySelector(".voltage_min").textContent =
 
-            `Spannung min: ${stackInfo.voltage_min} V`;
+            `Spannung min: ${stackInfo.voltage_min ?? "--"} V`;
 
         container.querySelector(".voltage_max").textContent =
 
-            `Spannung max: ${stackInfo.voltage_max} V`;
+            `Spannung max: ${stackInfo.voltage_max ?? "--"} V`;
 
         container.querySelector(".temperature_min").textContent =
 
-            `Temperatur min: ${stackInfo.temperature_min} \u00B0C`;
+            `Temperatur min: ${stackInfo.temperature_min ?? "--"} \u00B0C`;
 
         container.querySelector(".temperature_max").textContent =
 
-            `Temperatur max: ${stackInfo.temperature_max} \u00B0C`;
+            `Temperatur max: ${stackInfo.temperature_max ?? "--"} \u00B0C`;
 
         container.querySelector(".ltc_temperature").textContent =
 
@@ -866,7 +802,7 @@
 
                         beginAtZero: true,
 
-                        max: 35, // Maximalwert für den Ladestrom
+                        suggestedMax: 35, // Maximalwert für den Ladestrom
 
                     }
 
@@ -980,7 +916,7 @@
 
                         beginAtZero: true,
 
-                        max: 5, 
+                        suggestedMax: 5,
 
                     },
 
@@ -994,7 +930,7 @@
 
                         beginAtZero: true,
 
-                        max: 70,
+                        suggestedMax: 70,
 
                     }
 
@@ -1006,13 +942,13 @@
 
     }
 
-    
+
 
     // Initialisierung
 
-    setupChargingGraph();
+    if (typeof Chart !== "undefined") setupChargingGraph();
 
-    setupCellGraph();
+    if (typeof Chart !== "undefined") setupCellGraph();
 
     // Alle Stacks inklusive ihrer Zellen direkt anzeigen
 
@@ -1032,7 +968,7 @@
 
         update_cell_graph();
 
-    }, 100);
+    }, 1000);
 
 
 
@@ -1048,24 +984,21 @@
 
 
 
-    setInterval(() => {
-
-        get_connection_state();
-
-    }, 5000);
 
 
 
-    get_connection_state();
+
+    // Connection status is updated by connection.js.
 
     get_charging_current();
 
     update_cell_graph();
 
-    
+
 
 </script>
 
 
 
 </html>
+<script src="/connection.js"></script>

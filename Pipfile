@@ -4,8 +4,8 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-sanic = "*"
-pyserial = "*"
+sanic = ">=23.12,<26"
+pyserial = ">=3.5,<4"
 
 [dev-packages]
 black = "*"
