@@ -104,11 +104,15 @@
 
 <p>Ladestrom: <b id="charging_current"></b>A</p>
 
-<canvas id="chargingGraph"></canvas>
+<div class="chart-container">
+    <canvas id="chargingGraph"></canvas>
+</div>
 
 <br />
 
-<canvas id="cellGraph"></canvas>
+<div class="chart-container">
+    <canvas id="cellGraph"></canvas>
+</div>
 
 <br />
 
@@ -186,15 +190,19 @@
 
 
 
-    #chargingGraph {
+    /* Chart.js keeps render size and pointer coordinates in sync with this container. */
+    .chart-container {
 
-        width: calc(100% - 200px) !important;
+        position: relative;
+        width: calc(100% - 200px);
+        min-width: 0;
+        flex: none;
 
-        margin-left: 40px !important;
+        margin-left: 40px;
 
         margin-right: 40px;
 
-        height: 600px !important;
+        height: 600px;
 
 
 
@@ -202,19 +210,6 @@
 
 
 
-    #cellGraph {
-
-        width: calc(100% - 200px) !important;
-
-        margin-left: 40px !important;
-
-        margin-right: 40px;
-
-        height: 600px !important;
-
-
-
-    }
 
 
 
@@ -779,6 +774,9 @@
             options: {
 
                 animation: false,
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'nearest', axis: 'xy', intersect: false },
 
                 scales: {
 
@@ -893,6 +891,9 @@
             options: {
 
                 animation: false,
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'nearest', axis: 'xy', intersect: false },
 
                 scales: {
 

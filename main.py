@@ -8,6 +8,14 @@ from sanic.response import file, json
 import struct
 from functools import reduce
 from operator import xor
+from Telemetrie_identifier import (
+    Device_AMS,
+    ID_TS_Voltage,
+    ID_TS_Current,
+    ID_TS_Cell_Temprearure_min,
+    ID_TS_Stack_Detail,
+    ID_LTC_All_Stacks,
+)
 
 NUM_STACK = 12
 STALE_SECONDS = 5
@@ -30,7 +38,7 @@ class FrameDecoder:
             if len(self.buffer) < 4:
                 break
             length = self.buffer[2]
-            if self.buffer[1] != 0 or self.buffer[3] != 0xA1 or not 1 <= length <= 59:
+            if self.buffer[1] != 0 or self.buffer[3] != Device_AMS or not 1 <= length <= 59:
                 del self.buffer[0]
                 continue
             size = length + 5
@@ -74,7 +82,7 @@ class Telemetry:
 
     def apply(self, message_id, payload):
         now = time.monotonic()
-        if message_id == 0x40:
+        if message_id == ID_TS_Stack_Detail:
             if len(payload) not in (49, 51) or payload[0] >= NUM_STACK:
                 return False
             stack = self.stacks[payload[0]]
@@ -83,18 +91,18 @@ class Telemetry:
                          temperatures=[temperature(t) for t in raw[12:]], ts=now)
             if len(payload) == 51:
                 stack.update(ltc_temperature=ltc_temperature(payload[49:]), ltc_ts=now)
-        elif message_id == 0x90:
+        elif message_id == ID_LTC_All_Stacks:
             if len(payload) != 24:
                 return False
             for i, stack in enumerate(self.stacks):
                 stack.update(ltc_temperature=ltc_temperature(payload[2*i:2*i+2]), ltc_ts=now)
-        elif message_id in (0x21, 0x22, 0x28):
+        elif message_id in (ID_TS_Voltage, ID_TS_Current, ID_TS_Cell_Temprearure_min):
             if len(payload) != 2:
                 return False
             raw = int.from_bytes(payload, 'big')
-            name, value = {0x21: ('ts_voltage', raw / 100),
-                           0x22: ('charging_current', raw / 10),
-                           0x28: ('cell_temperature_min', temperature(raw))}[message_id]
+            name, value = {ID_TS_Voltage: ('ts_voltage', raw / 100),
+                           ID_TS_Current: ('charging_current', raw / 10),
+                           ID_TS_Cell_Temprearure_min: ('cell_temperature_min', temperature(raw))}[message_id]
             self.values[name] = (value, now)
         else:
             return False
