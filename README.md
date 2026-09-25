@@ -30,7 +30,9 @@ Teilpakete werden gepuffert, Prüfsummen kontrolliert und beschädigte Pakete ve
   12 Zelltemperaturen (uint16 Big Endian /1000 °C).
 - `0x21`: TS-Spannung /100 V; `0x22`: Strombetrag /10 A.
 - `0x28`: minimale Zelltemperatur /1000 °C.
-- `0x90`: optionale LTC-Temperaturen (int16 Big Endian /10 °C).
+- `0x2D`: einzelne LTC-Temperatur (int16 Big Endian /10 °C), ohne Stackzuordnung.
+- `0x90`: LTC-Temperaturen aller 12 Stacks (je int16 Big Endian /10 °C).
+- `0x40`: optionaler LTC-Anhang (2 Byte, int16 Big Endian /10 °C).
 
 Temperaturen 0xFFFF/0xFFFE sowie Spannungen 0/0xFFFF gelten als ungültig.
 Temperaturen werden entsprechend der Firmware unsigned gelesen, damit z.B.
@@ -46,5 +48,4 @@ Ohne Messdaten und nach 5 Sekunden ohne Aktualisierung erscheint --; Diagramme
 zeigen Lücken. Es gibt keine Beispielwerte. Empfangspausen schließen den Port nicht.
 Nach einem USB-Fehler wird er geschlossen und kann erneut verbunden werden.
 
-Die bereitgestellte Firmware sendet im aktiven Sendezyklus keine LTC-Temperaturen.
-Daher bleibt LTC intern --, bis 0x90 oder ein Stackpaket mit LTC-Anhang gesendet wird.
+Die separate LTC-Temperatur aus `0x2D` steht unter `/ltc_temperature` und oberhalb der Diagramme. Die stackweisen LTC-Werte aus `0x90` und `0x40` erscheinen in den Stackkarten und Stackdetails. Fehlerwerte -1, -2 und 0x7FFF sowie Werte ohne Aktualisierung seit 5 Sekunden erscheinen als --. Ein Stackpaket ohne LTC-Anhang aktualisiert den LTC-Zeitstempel nicht.

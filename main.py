@@ -15,6 +15,7 @@ from Telemetrie_identifier import (
     ID_TS_Cell_Temprearure_min,
     ID_TS_Stack_Detail,
     ID_LTC_All_Stacks,
+    ID_LTC_Temperature,
 )
 
 NUM_STACK = 12
@@ -91,6 +92,11 @@ class Telemetry:
                          temperatures=[temperature(t) for t in raw[12:]], ts=now)
             if len(payload) == 51:
                 stack.update(ltc_temperature=ltc_temperature(payload[49:]), ltc_ts=now)
+        elif message_id == ID_LTC_Temperature:
+            if len(payload) != 2:
+                return False
+            # This message has no stack index: keep it as a separate measurement.
+            self.values['ltc_temperature'] = (ltc_temperature(payload), now)
         elif message_id == ID_LTC_All_Stacks:
             if len(payload) != 24:
                 return False
@@ -131,7 +137,7 @@ class Telemetry:
         now = time.monotonic()
         result = {name: self.values[name][0] if name in self.values and
                   now - self.values[name][1] < STALE_SECONDS else None
-                  for name in ('ts_voltage', 'charging_current')}
+                  for name in ('ts_voltage', 'charging_current', 'ltc_temperature')}
         stacks = [self.stack(i) for i in range(NUM_STACK)]
         for name in ('voltage_min', 'voltage_max', 'temperature_min', 'temperature_max'):
             values = [s[name] for s in stacks if s[name] is not None]
@@ -210,6 +216,7 @@ async def stack_info(request, stack_num):
     return json(telemetry.stack(stack_num))
 
 @app.get('/charging_current', name='charging_current')
+@app.get('/ltc_temperature', name='ltc_temperature')
 @app.get('/cell_temperature_max', name='cell_temperature_max')
 @app.get('/cell_temperature_min', name='cell_temperature_min')
 @app.get('/cell_voltage_max', name='cell_voltage_max')
