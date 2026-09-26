@@ -20,6 +20,9 @@ from Telemetrie_identifier import (
 
 NUM_STACK = 12
 STALE_SECONDS = 5
+# Current firmware sends DCC bytes in the 51-byte packet; LTC uses 0x90.
+# Set to 'ltc' only for older firmware with a temperature-only appendix.
+STACK_DETAIL_51_FORMAT = 'balancing'
 
 class FrameDecoder:
     def __init__(self):
@@ -76,6 +79,7 @@ class Telemetry:
 
     def reset(self):
         self.stacks = [dict(voltages=[None]*12, temperatures=[None]*12,
+                            balancing=[False]*12, balancing_available=False, stack_payload_bytes=None,
                             ltc_temperature=None, ts=None, ltc_ts=None)
                        for _ in range(NUM_STACK)]
         self.values = {}
@@ -84,14 +88,20 @@ class Telemetry:
     def apply(self, message_id, payload):
         now = time.monotonic()
         if message_id == ID_TS_Stack_Detail:
-            if len(payload) not in (49, 51) or payload[0] >= NUM_STACK:
+            if len(payload) not in (49, 51, 53) or payload[0] >= NUM_STACK:
                 return False
             stack = self.stacks[payload[0]]
             raw = struct.unpack('>24H', payload[1:49])
             stack.update(voltages=[voltage(v) for v in raw[:12]],
                          temperatures=[temperature(t) for t in raw[12:]], ts=now)
-            if len(payload) == 51:
-                stack.update(ltc_temperature=ltc_temperature(payload[49:]), ltc_ts=now)
+            if len(payload) == 53 or (len(payload) == 51 and STACK_DETAIL_51_FORMAT == 'ltc'):
+                stack.update(ltc_temperature=ltc_temperature(payload[49:51]), ltc_ts=now)
+            # Only the lower four bits of CFG5 describe discharge channels.
+            dcc_offset = 51 if len(payload) == 53 else 49 if len(payload) == 51 and STACK_DETAIL_51_FORMAT == 'balancing' else None
+            dcc = (payload[dcc_offset] | ((payload[dcc_offset + 1] & 0x0F) << 8)) if dcc_offset is not None else 0
+            stack['balancing'] = [bool(dcc & (1 << i)) for i in range(12)]
+            stack['balancing_available'] = dcc_offset is not None
+            stack['stack_payload_bytes'] = len(payload)
         elif message_id == ID_LTC_Temperature:
             if len(payload) != 2:
                 return False
@@ -127,6 +137,9 @@ class Telemetry:
         ts = [t for i, t in enumerate(temps[:11]) if t is not None and i != 9]
         ltc_fresh = source['ltc_ts'] is not None and now - source['ltc_ts'] < STALE_SECONDS
         return dict(voltages=volts, temperatures=temps,
+                    balancing=source['balancing'][:] if fresh else [False]*12,
+                    balancing_available=fresh and source['balancing_available'],
+                    stack_payload_bytes=source['stack_payload_bytes'],
                     voltage_min=min(vs, default=None), voltage_max=max(vs, default=None),
                     temperature_min=min(ts, default=None), temperature_max=max(ts, default=None),
                     sum_voltage=round(sum(vs), 4) if len(vs) == 11 else None,

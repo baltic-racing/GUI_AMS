@@ -32,7 +32,54 @@ Teilpakete werden gepuffert, Prüfsummen kontrolliert und beschädigte Pakete ve
 - `0x28`: minimale Zelltemperatur /1000 °C.
 - `0x2D`: einzelne LTC-Temperatur (int16 Big Endian /10 °C), ohne Stackzuordnung.
 - `0x90`: LTC-Temperaturen aller 12 Stacks (je int16 Big Endian /10 °C).
-- `0x40`: optionaler LTC-Anhang (2 Byte, int16 Big Endian /10 °C).
+- `0x40` mit 51 Byte: Die aktuelle Firmware sendet nach den Grunddaten
+  `cfg[stack][4]` und `cfg[stack][5]` als Balancing-Bits. LTC kommt separat über `0x90`.
+  Nur für ältere Firmware mit LTC-Anhang muss `STACK_DETAIL_51_FORMAT` in
+  `main.py` auf `'ltc'` gesetzt werden. Die beiden Formate sind nicht automatisch unterscheidbar.
+- `0x40`: nach dem LTC-Anhang optional 2 Balancing-Bytes (53 Byte Nutzdaten insgesamt):
+  Byte 51 = `cfg[stack][4]` (DCC 1–8), Byte 52 = `cfg[stack][5]`
+  (untere 4 Bits: DCC 9–12; obere 4 Bits werden ignoriert).
+
+Aktives Balancing färbt die zugehörige Zellkarte orange und zeigt „BALANCING“.
+Die bestehende Zellnummerierung bleibt nullbasiert: DCC 1 gehört zur Anzeige
+„Zelle 0“. Ohne Balancing-Anhang, nach 5 Sekunden ohne Stackdaten oder nach
+Zurücksetzen der Verbindung werden die Markierungen entfernt. Blau allein
+bestätigt deshalb keinen ausgeschalteten Balancing-Zustand.
+
+Die Zellkarte unterscheidet ausdrücklich `BALANCING`, `Balancing: aus` und
+`Balancing: unbekannt`. Der Stackhinweis meldet bei Paketen ohne Balancing-Anhang
+`nicht übertragen` und verweist auf die erforderliche Firmware-Erweiterung.
+Die API liefert dafür `balancing_available` (nur bei frischen Paketen mit Balancing-Anhang
+wahr) und `stack_payload_bytes` (Länge des letzten akzeptierten Stackpakets).
+Nach Änderungen den Python-Server neu starten, erneut verbinden und die
+Browserseite mit Strg+F5 neu laden.
+
+### Optionale Firmware-Erweiterung für LTC und Balancing im selben Paket
+
+Für die aktuelle 51-Byte-Firmware ist keine Änderung erforderlich. Die GUI
+liest deren Balancing-Bits direkt. Das folgende 53-Byte-Format ermöglicht
+zusätzlich die LTC-Temperatur im selben Paket.
+
+Die STM32-Quellen sind nicht in diesem Repository enthalten. In
+`USB_Send_StackDetail()` muss der Payload-Puffer 53 Byte groß sein. Nach den
+12 Spannungen und 12 Temperaturen (bisher 49 Byte inklusive Stackindex)
+werden zuerst die LTC-Temperatur und dann die DCC-Bytes angehängt:
+
+```c
+/* Puffer: uint8_t payload[1 + 12 * 2 + 12 * 2 + 2 + 2]; */
+/* Hier ist idx == 49. Vorhandenen LTC-Anhang nicht doppelt schreiben. */
+uint16_t ltc = (uint16_t)ltcTemps_c10[stack];
+payload[idx++] = (uint8_t)(ltc >> 8);
+payload[idx++] = (uint8_t)(ltc & 0xFF);
+payload[idx++] = cfg[stack][4];
+payload[idx++] = cfg[stack][5];
+USB_transmit(0x40, payload, idx);
+```
+
+Die Variablen müssen aus der Firmware eingebunden werden; bei fehlendem
+LTC-Messwert kann `0x7FFF` als ungültige Temperatur übertragen werden.
+49- und 51-Byte-Pakete bleiben kompatibel; die Bedeutung der 51-Byte-Pakete
+wird explizit mit `STACK_DETAIL_51_FORMAT` festgelegt (Standard: `'balancing'`).
 
 Temperaturen 0xFFFF/0xFFFE sowie Spannungen 0/0xFFFF gelten als ungültig.
 Temperaturen werden entsprechend der Firmware unsigned gelesen, damit z.B.

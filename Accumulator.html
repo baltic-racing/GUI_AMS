@@ -340,6 +340,16 @@
 
 
 
+    .cell_box.balancing, .Batteriebox.balancing {
+        background-color: rgb(255, 170, 0);
+        color: #1a1a1a;
+        box-shadow: inset 0 0 0 3px rgb(255, 210, 80);
+    }
+
+    .balance_status {
+        min-height: 1.5em;
+    }
+
     .cell_box p {
 
         margin: 5px 0;
@@ -615,6 +625,8 @@
 
                         <p class="ltc_temperature">LTC intern: -- &deg;C</p>
 
+                        <p class="balancing_info">Balancing: warte auf Daten</p>
+
                     </div>
 
                 </div>
@@ -630,6 +642,8 @@
                             <p class="cell_voltage">Spannung: -- V</p>
 
                             <p class="cell_temperature">Temperatur: -- &deg;C</p>
+
+                            <p class="balance_status">Balancing: unbekannt</p>
 
                         </div>
 
@@ -662,6 +676,17 @@
         let voltages = Array.isArray(data.voltages) ? data.voltages : [];
 
         let temperatures = Array.isArray(data.temperatures) ? data.temperatures : [];
+
+        let balancing = Array.isArray(data.balancing) ? data.balancing : [];
+
+        const balancingAvailable = data.balancing_available === true && !data.stale;
+        container.querySelector(".balancing_info").textContent = data.stale
+            ? "Balancing: keine aktuellen Stackdaten"
+            : data.balancing_available === undefined
+                ? "Balancing: GUI-Server neu starten"
+                : !balancingAvailable
+                    ? `Balancing: nicht übertragen (${data.stack_payload_bytes} Byte). Firmware-Erweiterung erforderlich.`
+                    : `Balancing: ${balancing.filter(value => value === true).length} Kanäle aktiv`;
 
         let sumVoltage = stackInfo.sum_voltage;
 
@@ -696,6 +721,11 @@
         for (let cell = 0; cell < 11; cell++) {
 
             let cellBox = document.getElementById(`stack_${stack_id}_cell_${cell}`);
+
+            const isBalancing = balancingAvailable && balancing[cell] === true;
+            cellBox.classList.toggle("balancing", isBalancing);
+            cellBox.querySelector(".balance_status").textContent = !balancingAvailable
+                ? "Balancing: unbekannt" : isBalancing ? "BALANCING" : "Balancing: aus";
 
             cellBox.querySelector(".cell_voltage").textContent =
 
@@ -734,6 +764,10 @@
 
             tmp.classList = "Batteriebox";
 
+            const balancingAvailable = data.balancing_available === true && !data.stale;
+            const isBalancing = balancingAvailable && data.balancing?.[i] === true;
+            tmp.classList.toggle("balancing", isBalancing);
+
             tmp.innerHTML = `
 
                 <p>Zelle: ${i}</p>
@@ -741,6 +775,8 @@
                 <p>Spannung: ${data.voltages[i] ?? "--"}V</p>
 
                 <p>Temperatur: ${data.temperatures[i] ?? "--"}C</p>
+
+                <p class="balance_status">${!balancingAvailable ? "Balancing: unbekannt" : isBalancing ? "BALANCING" : "Balancing: aus"}</p>
 
             `;
 
