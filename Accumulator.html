@@ -8,6 +8,44 @@
     <title>Accumulator</title>
 
     <link rel="stylesheet" href="/styles.css">
+    <style>
+.usb-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 90;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 8px 16px;
+    text-align: left;
+    background: rgb(200, 200, 200);
+}
+body { padding-top: 64px; }
+.usb-details { line-height: 1.6; }
+.usb-status {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-left: auto;
+}
+.usb-dot {
+    display: inline-block;
+    flex: 0 0 20px;
+    width: 20px;
+    height: 20px;
+    overflow: visible;
+}
+@media (max-width: 540px) {
+    .usb-bar { padding: 8px; gap: 8px; font-size: 13px; }
+    .usb-status { max-width: 55%; }
+}
+</style>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
@@ -23,82 +61,21 @@
 
 
 
-<div style="display:flex;flex-direction:row">
-
-    <div class="field border">
-
-        <input type="text" placeholder="COM-Port auswählen" id="serial_port">
-
-        <span class="helper">Serial Port</span>
-
+<div class="usb-bar">
+    <div class="usb-details">
+        <div>Verbunden mit: <b id="connected_port">--</b></div>
     </div>
-
-    <div class="field border" style="margin-block-start: 0px;">
-
-        <select id="baudrate">
-
-            <option>9600</option>
-
-            <option>14400</option>
-
-            <option>19200</option>
-
-            <option>28800</option>
-
-            <option>38400</option>
-
-            <option>57600</option>
-
-            <option selected>115200</option>
-
-        </select>
-
-        <i>arrow_drop_down</i>
-
-        <span class="helper">Baudrate</span>
-
+    <div class="usb-status" role="status" aria-live="polite" data-state="searching">
+        <svg class="usb-dot" width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8" fill="#e88a08" /></svg>
+        <span id="connection_status">USB nicht gefunden – wird gesucht</span>
     </div>
-
-    <br />
-
-    <button id="connect">Connect</button>
-
-    <button id="disconnect">Disconnect</button>
-    <span id="connection_status" role="status">Nicht verbunden</span>
-
 </div>
 
 
 
-<!--
 
-<div class="field border" style="margin-block-start: 0px;">
 
-    <select id="serial_port">
 
-        <option selected>COM3</option>
-
-        <option>COM4</option>
-
-        <option>COM5</option>
-
-        <option>COM6</option>
-
-    </select>
-
-    <i>arrow_drop_down</i>
-
-    <span class="helper">Serial Port</span>
-
-</div>
-
--->
-
-<div style="display: flex; flex-direction: row; justify-content: space-between; width: 100%;">
-
-    <p>Verbunden mit: <b id="connected_port">--</b></p>
-
-</div>
 
 
 
@@ -444,21 +421,6 @@
     let detail_stack_number = document.getElementById("stack_headline");
 
     let detail_data = document.getElementById("detail_data");
-
-    let serial_port = document.getElementById("serial_port");
-
-    let baud_rate = document.getElementById("baudrate");
-
-    let connect_button = document.getElementById("connect");
-
-    let disconnect_button = document.getElementById("disconnect");
-
-
-
-    connect_button.addEventListener("click", () => establish_connection());
-
-    disconnect_button.addEventListener("click", () => disconnect());
-
 
 
     async function get_charging_current() {
@@ -1041,4 +1003,4 @@
 
 
 </html>
-<script src="/connection.js"></script>
+<script src="/connection.js?v=4"></script>

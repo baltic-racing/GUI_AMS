@@ -7,8 +7,22 @@ User Interface for Accumulator Managment System
 2. Den gesamten Projektordner kopieren und `start.bat` doppelklicken.
    Das Skript erstellt eine lokale `.venv` und installiert Sanic und pyserial.
    Beim ersten Start werden Internetzugang und Zugriff auf PyPI benötigt.
-3. Im Browser http://localhost:8081 öffnen, den passenden COM-Port und
-   die Baudrate des Geräts auswählen und verbinden. Das Terminal offen lassen.
+3. Im Browser http://localhost:8081 öffnen. USB-COM-Ports werden beim Start
+   automatisch durchsucht und bei gültigen AMS-Messdaten verbunden.
+   Das Terminal offen lassen. Port und erkannte Baudrate stehen links untereinander.
+
+Die USB-Suche prüft jeden USB-Port mit 115200, 57600, 38400, 19200, 9600, 28800
+und 14400 Baud, jeweils bis zu zwei Sekunden auf gültige AMS-Messdaten.
+Ohne Treffer wird sie nach einer Sekunde wiederholt, auch wenn das Gerät erst
+später eingesteckt wird. Nach USB-Verlust sucht der Automatikmodus erneut und
+erkennt auch eine geänderte COM-Nummer. Bei mehreren AMS-Geräten wird das erste
+erkannte Gerät verwendet. Die Oberfläche benötigt keine Verbindungseingaben mehr.
+Der Kreis rechts zeigt Grün für „USB verbunden“, Orange für
+„USB nicht gefunden – wird gesucht“ und Rot für „USB getrennt“
+(auch bei nicht erreichbarem GUI-Server).
+Über die API bleiben manuelle Verbindungen möglich: `POST /connection` mit
+`port` und `baudrate`. `DELETE /connection` beendet die Verbindung und Suche;
+`POST /connection` mit `{}` startet die automatische Port- und Baudratensuche erneut.
 
 Die `.venv` nicht zwischen Laptops kopieren; sie wird pro Rechner erstellt.
 Falls VS Code weiterhin fehlende Imports meldet: **Python: Select Interpreter**
@@ -93,7 +107,7 @@ erscheint nur, wenn alle 11 Spannungen gültig sind. Alle 12 Kanäle werden empf
 
 Ohne Messdaten und nach 5 Sekunden ohne Aktualisierung erscheint --; Diagramme
 zeigen Lücken. Es gibt keine Beispielwerte. Empfangspausen schließen den Port nicht.
-Nach einem USB-Fehler wird der gewählte Port jede Sekunde erneut geöffnet.
+Nach einem USB-Fehler wird bei manueller Portwahl der gewählte Port jede Sekunde erneut geöffnet.
 Manuelles Trennen beendet diese Wiederverbindungsversuche.
 Das Lesen läuft mit 100 ms Timeout in einem Hintergrundthread; die API bleibt
 währenddessen ansprechbar. Teilpakete werden über mehrere Lesevorgänge gepuffert,

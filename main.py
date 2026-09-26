@@ -1,4 +1,4 @@
-﻿import asyncio
+import asyncio
 import time
 import os
 from pathlib import Path
@@ -172,20 +172,65 @@ telemetry = Telemetry()
 decoder = FrameDecoder()
 connection = None
 connection_error = None
-connection_settings = None
+AUTO_BAUDRATES = (115200, 57600, 38400, 19200, 9600, 28800, 14400)
+connection_settings = dict(port=None, baudrate=None, timeout=0.1)
 retry_at = 0
+
+
+def open_connection(settings):
+    if settings['port'] is not None and settings['baudrate'] is not None:
+        return serial.Serial(**settings)
+    # Only accept USB devices that actually send supported AMS measurements.
+    for port in sorted(list_ports.comports(), key=lambda item: item.device):
+        if settings['port'] is not None and port.device != settings['port']:
+            continue
+        if port.vid is None and 'USB' not in (port.hwid or '').upper():
+            continue
+        for baudrate in (AUTO_BAUDRATES if settings['baudrate'] is None else (settings['baudrate'],)):
+            opened = probe_connection(dict(settings, port=port.device, baudrate=baudrate))
+            if opened is not None:
+                return opened
+    raise serial.SerialException('Suche nach USB-AMS … Keine gültigen Messdaten gefunden.')
+
+
+def probe_connection(settings):
+    opened = None
+    accepted = False
+    try:
+        opened = serial.Serial(**settings)
+        probe_decoder = FrameDecoder()
+        probe_telemetry = Telemetry()
+        deadline = time.monotonic() + 2
+        while time.monotonic() < deadline:
+            for message_id, payload in probe_decoder.feed(read_serial(opened)):
+                if probe_telemetry.apply(message_id, payload):
+                    accepted = True
+                    return opened
+    except (serial.SerialException, OSError, ValueError):
+        return None
+    finally:
+        if opened is not None and not accepted:
+            opened.close()
+
 
 @app.post('/connection')
 async def init_connection(request):
-    global connection, connection_error, connection_settings
+    global connection, connection_error, connection_settings, retry_at
     if connection is not None:
         return json({'error': 'Verbindung ist bereits aufgebaut'}, status=409)
     data = request.json
-    if not isinstance(data, dict) or not isinstance(data.get('port'), str) or not data['port'].strip():
-        return json({'error': 'Bitte einen COM-Port angeben.'}, status=400)
+    if not isinstance(data, dict) or not isinstance(data.get('port', ''), str):
+        return json({'error': 'Ungültiger COM-Port.'}, status=400)
     try:
-        settings = dict(port=data['port'].strip(),
-                        baudrate=int(data.get('baudrate', 115200)), timeout=0.1)
+        settings = dict(port=data.get('port', '').strip() or None,
+                        baudrate=int(data['baudrate']) if data.get('baudrate') is not None else None, timeout=0.1)
+        if settings['baudrate'] is not None and settings['baudrate'] <= 0:
+            raise ValueError('Ungültige Baudrate.')
+        if settings['port'] is None or settings['baudrate'] is None:
+            connection_settings = settings
+            connection_error = None
+            retry_at = 0
+            return json({'msg': 'Automatische USB-Suche gestartet'})
         opened = serial.Serial(**settings)
     except (serial.SerialException, OSError, ValueError, TypeError) as exc:
         connection_error = str(exc)
@@ -213,14 +258,18 @@ def close_connection(*, reconnect=False):
 
 @app.delete('/connection')
 async def destroy_connection(request):
+    global connection_error
     close_connection()
+    connection_error = None
     return json({'msg': 'Verbindung getrennt'})
 
 @app.get('/connection')
 async def get_connection_info(request):
     age = None if telemetry.last_received is None else time.monotonic() - telemetry.last_received
     return json(dict(connected=connection is not None,
+                     searching=connection is None and connection_settings is not None,
                      connected_port=connection.port if connection else None,
+                     baudrate=connection.baudrate if connection else None,
                      receiving=age is not None and age < 5,
                      last_data_age_s=age, error=connection_error,
                      frames=decoder.frames, checksum_errors=decoder.checksum_errors))
@@ -274,7 +323,7 @@ async def data_task():
         if connection is None and connection_settings is not None and time.monotonic() >= retry_at:
             settings = connection_settings
             try:
-                opened = await asyncio.to_thread(serial.Serial, **settings)
+                opened = await asyncio.to_thread(open_connection, settings)
             except (serial.SerialException, OSError) as exc:
                 if connection_settings is settings:
                     connection_error = str(exc)

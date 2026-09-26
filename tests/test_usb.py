@@ -3,6 +3,7 @@ import unittest
 from functools import reduce
 from operator import xor
 from unittest.mock import Mock, patch
+from types import SimpleNamespace
 
 import main
 
@@ -57,8 +58,8 @@ class ReaderTests(unittest.IsolatedAsyncioTestCase):
         sleeps = []
 
         async def worker(function, *args, **kwargs):
-            if function is main.serial.Serial:
-                self.assertEqual(kwargs['port'], 'COM7')
+            if function is main.open_connection:
+                self.assertEqual(args[0]['port'], 'COM7')
                 return new
             if args[0] is old:
                 raise main.serial.SerialException('USB removed')
@@ -97,3 +98,57 @@ class ReaderTests(unittest.IsolatedAsyncioTestCase):
                 await main.data_task()
         self.assertIsNone(main.connection_settings)
         self.assertIsNone(main.telemetry.last_received)
+
+
+class AutoConnectionTests(unittest.TestCase):
+    def test_auto_baudrate_skips_wrong_rate_and_keeps_valid_ams_port(self):
+        port = SimpleNamespace(device='COM3', vid=123, hwid='USB')
+        wrong = Mock(in_waiting=0)
+        wrong.read.return_value = b'noise'
+        correct = Mock(in_waiting=0)
+        correct.read.return_value = frame()
+        with patch('main.list_ports.comports', return_value=[port]), patch(
+                'main.serial.Serial', side_effect=[wrong, correct]) as serial_open, patch(
+                'main.time.monotonic', side_effect=[0, 0, 3, 3, 3, 3]):
+            result = main.open_connection(dict(port=None, baudrate=None, timeout=0.1))
+        self.assertIs(result, correct)
+        self.assertEqual([call.kwargs['baudrate'] for call in serial_open.call_args_list],
+                         [115200, 57600])
+        wrong.close.assert_called_once()
+        correct.close.assert_not_called()
+
+    def test_skips_non_usb_and_busy_ports_and_accepts_ams(self):
+        ports = [SimpleNamespace(device='COM1', vid=None, hwid='ACPI'),
+                 SimpleNamespace(device='COM2', vid=123, hwid='USB'),
+                 SimpleNamespace(device='COM3', vid=123, hwid='USB')]
+        opened = Mock(in_waiting=0)
+        opened.read.return_value = frame()
+        with patch('main.list_ports.comports', return_value=ports), patch(
+                'main.serial.Serial', side_effect=[main.serial.SerialException('busy'), opened]) as serial_open:
+            result = main.open_connection(dict(port=None, baudrate=115200, timeout=0.1))
+        self.assertIs(result, opened)
+        self.assertEqual([call.kwargs['port'] for call in serial_open.call_args_list], ['COM2', 'COM3'])
+        opened.close.assert_not_called()
+
+    def test_closes_usb_device_without_ams_data(self):
+        port = SimpleNamespace(device='COM3', vid=123, hwid='USB')
+        opened = Mock(in_waiting=0)
+        opened.read.return_value = b'other device'
+        with patch('main.list_ports.comports', return_value=[port]), patch(
+                'main.serial.Serial', return_value=opened), patch(
+                'main.time.monotonic', side_effect=[0, 0, 3]):
+            with self.assertRaises(main.serial.SerialException):
+                main.open_connection(dict(port=None, baudrate=115200, timeout=0.1))
+        opened.close.assert_called_once()
+
+    def test_each_search_uses_current_port_list(self):
+        opened = Mock(in_waiting=0)
+        opened.read.return_value = frame()
+        settings = dict(port=None, baudrate=115200, timeout=0.1)
+        with patch('main.list_ports.comports', side_effect=[[], [
+                SimpleNamespace(device='COM9', vid=123, hwid='USB')]]), patch(
+                'main.serial.Serial', return_value=opened) as serial_open:
+            with self.assertRaises(main.serial.SerialException):
+                main.open_connection(settings)
+            self.assertIs(main.open_connection(settings), opened)
+        self.assertEqual(serial_open.call_args.kwargs['port'], 'COM9')
