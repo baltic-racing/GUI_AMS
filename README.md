@@ -93,6 +93,14 @@ erscheint nur, wenn alle 11 Spannungen gültig sind. Alle 12 Kanäle werden empf
 
 Ohne Messdaten und nach 5 Sekunden ohne Aktualisierung erscheint --; Diagramme
 zeigen Lücken. Es gibt keine Beispielwerte. Empfangspausen schließen den Port nicht.
-Nach einem USB-Fehler wird er geschlossen und kann erneut verbunden werden.
+Nach einem USB-Fehler wird der gewählte Port jede Sekunde erneut geöffnet.
+Manuelles Trennen beendet diese Wiederverbindungsversuche.
+Das Lesen läuft mit 100 ms Timeout in einem Hintergrundthread; die API bleibt
+währenddessen ansprechbar. Teilpakete werden über mehrere Lesevorgänge gepuffert,
+mehrere Pakete in einem USB-Leseblock einzeln geprüft und verarbeitet.
+Große Leseblöcke werden nicht als ungeprüfte Stack-Rohdaten interpretiert:
+Die Firmware sendet STM-Pakete mit jeweils maximal 64 Byte.
+Mit der Umgebungsvariable `TELEMETRY_RAW_DEBUG=1` lassen sich empfangene Bytes
+zur Diagnose im Terminal ausgeben. Oberfläche und API-Datenformat bleiben gleich.
 
 Die separate LTC-Temperatur aus `0x2D` steht unter `/ltc_temperature` und oberhalb der Diagramme. Die stackweisen LTC-Werte aus `0x90` und `0x40` erscheinen in den Stackkarten und Stackdetails. Fehlerwerte -1, -2 und 0x7FFF sowie Werte ohne Aktualisierung seit 5 Sekunden erscheinen als --. Ein Stackpaket ohne LTC-Anhang aktualisiert den LTC-Zeitstempel nicht.

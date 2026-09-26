@@ -103,7 +103,6 @@
 
 
 <p>Ladestrom: <b id="charging_current"></b>A</p>
-<p>LTC Temperatur (0x2D): <b id="ltc_temperature">--</b> &deg;C</p>
 
 <div class="chart-container">
     <canvas id="chargingGraph"></canvas>
@@ -463,12 +462,7 @@
 
 
     async function get_charging_current() {
-        const [response, ltcResponse] = await Promise.all([
-            fetch("/charging_current"),
-            fetch("/ltc_temperature")
-        ]);
-        const ltcData = await ltcResponse.json();
-        document.getElementById("ltc_temperature").textContent = ltcData.ltc_temperature ?? "--";
+        const response = await fetch("/charging_current");
 
 
         let data = await response.json();

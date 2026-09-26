@@ -1,5 +1,6 @@
 ﻿import asyncio
 import time
+import os
 from pathlib import Path
 import serial
 from serial.tools import list_ports
@@ -23,6 +24,7 @@ STALE_SECONDS = 5
 # Current firmware sends DCC bytes in the 51-byte packet; LTC uses 0x90.
 # Set to 'ltc' only for older firmware with a temperature-only appendix.
 STACK_DETAIL_51_FORMAT = 'balancing'
+USB_RAW_DEBUG = os.getenv('TELEMETRY_RAW_DEBUG', '').lower() in ('1', 'true', 'yes', 'on')
 
 class FrameDecoder:
     def __init__(self):
@@ -36,9 +38,12 @@ class FrameDecoder:
         self.buffer.extend(data)
         packets = []
         while self.buffer:
-            if self.buffer[0] != 2:
-                del self.buffer[0]
-                continue
+            start = self.buffer.find(b'\x02')
+            if start < 0:
+                self.buffer.clear()
+                break
+            if start:
+                del self.buffer[:start]
             if len(self.buffer) < 4:
                 break
             length = self.buffer[2]
@@ -167,29 +172,36 @@ telemetry = Telemetry()
 decoder = FrameDecoder()
 connection = None
 connection_error = None
+connection_settings = None
+retry_at = 0
 
 @app.post('/connection')
 async def init_connection(request):
-    global connection, connection_error
+    global connection, connection_error, connection_settings
     if connection is not None:
         return json({'error': 'Verbindung ist bereits aufgebaut'}, status=409)
     data = request.json
     if not isinstance(data, dict) or not isinstance(data.get('port'), str) or not data['port'].strip():
         return json({'error': 'Bitte einen COM-Port angeben.'}, status=400)
     try:
-        connection = serial.Serial(port=data['port'].strip(),
-                                   baudrate=int(data.get('baudrate', 115200)), timeout=0)
+        settings = dict(port=data['port'].strip(),
+                        baudrate=int(data.get('baudrate', 115200)), timeout=0.1)
+        opened = serial.Serial(**settings)
     except (serial.SerialException, OSError, ValueError, TypeError) as exc:
         connection_error = str(exc)
         return json({'error': connection_error}, status=400)
+    connection = opened
+    connection_settings = settings
     telemetry.reset()
     decoder.reset()
     connection_error = None
     return json({'msg': 'Verbindung aufgebaut'})
 
 
-def close_connection():
-    global connection
+def close_connection(*, reconnect=False):
+    global connection, connection_settings
+    if not reconnect:
+        connection_settings = None
     previous, connection = connection, None
     if previous is not None:
         try:
@@ -251,18 +263,46 @@ for url, filename in [('/styles.css', 'beer.min.css'),
                       ('/BRT_logo_schrift.png', 'BRT_logo_schrift.png')]:
     app.static(url, str(BASE / filename), name='asset_' + filename.replace('.', '_'))
 
+def read_serial(port):
+    # Run blocking USB reads in a worker thread, keeping HTTP responsive.
+    return port.read(port.in_waiting or 1)
+
+
 async def data_task():
-    global connection_error
+    global connection, connection_error, retry_at
     while True:
-        if connection is not None:
+        if connection is None and connection_settings is not None and time.monotonic() >= retry_at:
+            settings = connection_settings
             try:
-                incoming = connection.read(min(connection.in_waiting, 8192))
+                opened = await asyncio.to_thread(serial.Serial, **settings)
+            except (serial.SerialException, OSError) as exc:
+                if connection_settings is settings:
+                    connection_error = str(exc)
+                    retry_at = time.monotonic() + 1
+            else:
+                if connection_settings is settings and connection is None:
+                    connection = opened
+                    decoder.reset()
+                    connection_error = None
+                else:
+                    opened.close()
+        active = connection
+        if active is not None:
+            try:
+                incoming = await asyncio.to_thread(read_serial, active)
+                # Ignore reads completed after disconnecting or changing ports.
+                if connection is not active:
+                    continue
+                if USB_RAW_DEBUG and incoming:
+                    print('RAW:', incoming.hex(' '))
                 for message_id, payload in decoder.feed(incoming):
                     telemetry.apply(message_id, payload)
             except (serial.SerialException, OSError) as exc:
-                connection_error = str(exc)
-                close_connection()
-        await asyncio.sleep(0.01)
+                if connection is active:
+                    connection_error = str(exc)
+                    close_connection(reconnect=True)
+                    retry_at = time.monotonic() + 1
+        await asyncio.sleep(0 if connection is not None else 0.1)
 
 @app.before_server_start
 async def start_reader(app):
