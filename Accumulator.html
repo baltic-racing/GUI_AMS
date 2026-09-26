@@ -81,6 +81,7 @@ body { padding-top: 64px; }
 
 <p>Ladestrom: <b id="charging_current"></b>A</p>
 
+
 <div class="chart-container">
     <canvas id="chargingGraph"></canvas>
 </div>
@@ -220,9 +221,11 @@ body { padding-top: 64px; }
 
     #Batteriecontainer {
 
-        display: flex;
+        display: grid;
 
-        flex-direction: column;
+        grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
+
+        align-items: start;
 
         width: 95%;
 
@@ -235,6 +238,8 @@ body { padding-top: 64px; }
     .Stackbox {
 
         box-sizing: border-box;
+
+        min-width: 0;
 
         width: 100%;
 
@@ -254,13 +259,15 @@ body { padding-top: 64px; }
 
         display: flex;
 
-        flex-wrap: wrap;
+        flex-direction: column;
 
         justify-content: space-between;
 
-        align-items: center;
+        align-items: stretch;
 
-        gap: 20px;
+        gap: 10px;
+
+        margin-bottom: 12px;
 
     }
 
@@ -270,11 +277,11 @@ body { padding-top: 64px; }
 
         display: flex;
 
-        flex-wrap: wrap;
+        flex-direction: column;
 
-        justify-content: flex-end;
+        align-items: flex-start;
 
-        gap: 8px 20px;
+        gap: 4px;
 
     }
 
@@ -292,7 +299,7 @@ body { padding-top: 64px; }
 
         display: grid;
 
-        grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+        grid-template-columns: minmax(0, 1fr);
 
         gap: 10px;
 
@@ -318,7 +325,7 @@ body { padding-top: 64px; }
 
     .cell_box.balancing, .Batteriebox.balancing {
         background-color: rgb(255, 170, 0);
-        color: #1a1a1a;
+        color: #000000;
         box-shadow: inset 0 0 0 3px rgb(255, 210, 80);
     }
 
@@ -335,6 +342,8 @@ body { padding-top: 64px; }
 
 
     .Batteriebox {
+
+        color: #ffffff;
 
         margin: 5px;
 
@@ -569,19 +578,19 @@ body { padding-top: 64px; }
 
                     <div class="stack_summary">
 
-                        <p class="stack_voltage">Sum Voltage: -- V</p>
+                        <p class="stack_voltage">Summe: -- V</p>
 
-                        <p class="voltage_min">Spannung min: -- V</p>
+                        <p class="voltage_min">U min: -- V</p>
 
-                        <p class="voltage_max">Spannung max: -- V</p>
+                        <p class="voltage_max">U max: -- V</p>
 
-                        <p class="temperature_min">Temperatur min: -- &deg;C</p>
+                        <p class="temperature_min">T min: -- &deg;C</p>
 
-                        <p class="temperature_max">Temperatur max: -- &deg;C</p>
+                        <p class="temperature_max">T max: -- &deg;C</p>
 
-                        <p class="ltc_temperature">LTC intern: -- &deg;C</p>
+                        <p class="ltc_temperature">LTC: -- &deg;C</p>
 
-                        <p class="balancing_info">Balancing: warte auf Daten</p>
+                        <p class="balancing_info">Bal.: warte auf Daten</p>
 
                     </div>
 
@@ -595,11 +604,11 @@ body { padding-top: 64px; }
 
                             <p><b>Zelle ${cell}</b></p>
 
-                            <p class="cell_voltage">Spannung: -- V</p>
+                            <p class="cell_voltage">U: -- V</p>
 
-                            <p class="cell_temperature">Temperatur: -- &deg;C</p>
+                            <p class="cell_temperature">T: -- &deg;C</p>
 
-                            <p class="balance_status">Balancing: unbekannt</p>
+                            <p class="balance_status" title="Balancing: B: aus = ausgeschaltet; B: ? = unbekannt; BALANCING = aktiv">B: ?</p>
 
                         </div>
 
@@ -637,12 +646,12 @@ body { padding-top: 64px; }
 
         const balancingAvailable = data.balancing_available === true && !data.stale;
         container.querySelector(".balancing_info").textContent = data.stale
-            ? "Balancing: keine aktuellen Stackdaten"
+            ? "Bal.: keine Daten"
             : data.balancing_available === undefined
-                ? "Balancing: GUI-Server neu starten"
+                ? "Bal.: Server prüfen"
                 : !balancingAvailable
-                    ? `Balancing: nicht übertragen (${data.stack_payload_bytes} Byte). Firmware-Erweiterung erforderlich.`
-                    : `Balancing: ${balancing.filter(value => value === true).length} Kanäle aktiv`;
+                    ? `Bal.: nicht übertragen`
+                    : `Bal.: ${balancing.filter(value => value === true).length} aktiv`;
 
         let sumVoltage = stackInfo.sum_voltage;
 
@@ -650,27 +659,27 @@ body { padding-top: 64px; }
 
         container.querySelector(".stack_voltage").textContent =
 
-            `Sum Voltage: ${sumVoltage == null ? "--" : sumVoltage.toFixed(3)} V`;
+            `Summe: ${sumVoltage == null ? "--" : sumVoltage.toFixed(3)} V`;
 
         container.querySelector(".voltage_min").textContent =
 
-            `Spannung min: ${stackInfo.voltage_min ?? "--"} V`;
+            `U min: ${stackInfo.voltage_min ?? "--"} V`;
 
         container.querySelector(".voltage_max").textContent =
 
-            `Spannung max: ${stackInfo.voltage_max ?? "--"} V`;
+            `U max: ${stackInfo.voltage_max ?? "--"} V`;
 
         container.querySelector(".temperature_min").textContent =
 
-            `Temperatur min: ${stackInfo.temperature_min ?? "--"} \u00B0C`;
+            `T min: ${stackInfo.temperature_min == null ? "--" : stackInfo.temperature_min.toFixed(1)} \u00B0C`;
 
         container.querySelector(".temperature_max").textContent =
 
-            `Temperatur max: ${stackInfo.temperature_max ?? "--"} \u00B0C`;
+            `T max: ${stackInfo.temperature_max == null ? "--" : stackInfo.temperature_max.toFixed(1)} \u00B0C`;
 
         container.querySelector(".ltc_temperature").textContent =
 
-            `LTC intern: ${stackInfo.ltc_temperature ?? "--"} \u00B0C`;
+            `LTC: ${stackInfo.ltc_temperature ?? "--"} \u00B0C`;
 
 
 
@@ -681,15 +690,15 @@ body { padding-top: 64px; }
             const isBalancing = balancingAvailable && balancing[cell] === true;
             cellBox.classList.toggle("balancing", isBalancing);
             cellBox.querySelector(".balance_status").textContent = !balancingAvailable
-                ? "Balancing: unbekannt" : isBalancing ? "BALANCING" : "Balancing: aus";
+                ? "B: ?" : isBalancing ? "BALANCING" : "B: aus";
 
             cellBox.querySelector(".cell_voltage").textContent =
 
-                `Spannung: ${voltages[cell] ?? "--"} V`;
+                `U: ${voltages[cell] == null ? "--" : voltages[cell].toFixed(4)} V`;
 
             cellBox.querySelector(".cell_temperature").textContent =
 
-                `Temperatur: ${temperatures[cell] ?? "--"} \u00B0C`;
+                `T: ${temperatures[cell] == null ? "--" : temperatures[cell].toFixed(1)} \u00B0C`;
 
         }
 
@@ -709,7 +718,7 @@ body { padding-top: 64px; }
 
         let data = await get_stack_detailed_info(stack_id);
         const ltcInfo = document.createElement("p");
-        ltcInfo.textContent = `LTC intern: ${data.ltc_temperature ?? "--"} \u00B0C`;
+        ltcInfo.textContent = `LTC: ${data.ltc_temperature ?? "--"} \u00B0C`;
         detail_data.appendChild(ltcInfo);
 
 
@@ -732,7 +741,7 @@ body { padding-top: 64px; }
 
                 <p>Temperatur: ${data.temperatures[i] ?? "--"}C</p>
 
-                <p class="balance_status">${!balancingAvailable ? "Balancing: unbekannt" : isBalancing ? "BALANCING" : "Balancing: aus"}</p>
+                <p class="balance_status">${!balancingAvailable ? "B: ?" : isBalancing ? "BALANCING" : "B: aus"}</p>
 
             `;
 
@@ -1003,4 +1012,31 @@ body { padding-top: 64px; }
 
 
 </html>
+<style>
+    body { margin: 0; padding: 40px 8px 8px; font-family: Arial, sans-serif; }
+    body > h1 { font-size: 20px; line-height: 24px; margin: 2px 0; }
+    #Batteriecontainer {
+        width: 100%; grid-template-columns: repeat(12, minmax(128px, 1fr));
+        gap: 6px; overflow-x: auto; padding: 2px 0 6px;
+    }
+    .Stackbox { padding: 6px; border-radius: 6px; filter: none; background: rgb(180, 180, 180); color: #1a1a1a; }
+    .stack_header { gap: 5px; margin-bottom: 6px; }
+    .stack_header h2 { font-size: 16px; line-height: 20px; margin: 0; font-weight: 700; }
+    .stack_summary { gap: 2px; }
+    .stack_summary p { font-size: 12px; line-height: 15px; font-weight: 400; margin: 0; }
+    .cells_grid { gap: 4px; }
+    .cell_box {
+        display: grid; grid-template-columns: 1fr auto; gap: 0 2px;
+        padding: 4px 5px; border-radius: 4px; filter: none;
+        background: rgb(70, 59, 231); color: #ffffff; border: 1px solid transparent;
+        font-variant-numeric: tabular-nums;
+    }
+    .cell_box p { font-size: 12px; line-height: 14px; font-weight: 400; margin: 0; }
+    .cell_box > p:first-child { grid-column: 1; grid-row: 1; }
+    .cell_box .cell_voltage { grid-column: 1 / -1; grid-row: 2; }
+    .cell_box .cell_temperature { grid-column: 1 / -1; grid-row: 3; }
+    .cell_box .balance_status { grid-column: 2; grid-row: 1; min-height: 0; font-size: 10px; }
+    .cell_box.balancing .balance_status { font-weight: bold; }
+    #footer p { font-size: 11px; margin: 4px 0; }
+</style>
 <script src="/connection.js?v=4"></script>
